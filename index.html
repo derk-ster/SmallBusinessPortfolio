@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Small Business Portfolio</title>
+    <title>Vertex Studio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -15,12 +15,14 @@
   <body>
     <header class="site-header">
       <div class="container header-inner">
-        <a class="logo" href="#home">NovaCraft</a>
+        <a class="logo" href="#home" aria-label="Vertex Studio">
+          <img src="Asset/VS.png" alt="Vertex Studio logo" />
+          <span class="logo-text">Vertex Studio</span>
+        </a>
         <nav class="nav">
           <a href="#home">Home</a>
           <a href="#about">About</a>
           <a href="#services">Services</a>
-          <a href="#portfolio">Portfolio</a>
           <a href="#testimonials">Testimonials</a>
           <a href="#contact">Contact</a>
         </nav>
@@ -39,7 +41,7 @@
             into beautiful, high-converting products.
           </p>
           <div class="hero-actions">
-            <a class="btn primary" href="#portfolio">View Work</a>
+            <a class="btn primary" href="#projects">View Work</a>
             <a class="btn ghost" href="#contact">Start a Project</a>
           </div>
           <div class="hero-stats">
@@ -54,7 +56,7 @@
               <span class="stat-note">Sample rating — expect the same level of care.</span>
             </div>
             <div>
-              <h3>1.5 yrs</h3>
+              <h3>1 ½ yrs</h3>
               <p>Experience</p>
             </div>
           </div>
@@ -63,52 +65,127 @@
 
       <section id="about" class="about section">
         <div class="container about-grid">
-          <div class="about-image glass-card">
-            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=640&q=80" alt="Derek portrait placeholder" />
-            <p class="image-caption">Replace this image with your portrait.</p>
-          </div>
           <div class="about-copy">
             <h2>About Me</h2>
             <p class="section-lead">
               Hi, I'm Derek, a web developer with 1.5 years of experience creating modern, interactive websites. I specialize in building fast, responsive, and visually stunning websites that help businesses and individuals stand out online.
             </p>
-            <p>
+            <p class="section-lead">
               Below are some of the websites I've built and brought to life. I focus on clean code, thoughtful UX, and reliable delivery for every project.
             </p>
           </div>
+          <div class="about-image glass-card">
+            <img src="Asset/AboutMe.png" alt="A portrait of Derek" />
+            <p class="image-caption">A portrait of Derek.</p>
+          </div>
         </div>
-        <div class="container about-projects">
+        <div class="container about-projects" id="projects">
           <div class="section-title">
-            <h3>Previous Projects</h3>
+            <h3>Previous Projects / Portfolio</h3>
             <p class="section-lead">
               A snapshot of recent builds, each tailored to a unique client goal.
             </p>
           </div>
           <div class="projects-grid">
-            <article class="glass-card project-card">
-              <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=900&q=80" alt="Project Horizon website" />
+            <a
+              class="glass-card project-card"
+              href="https://personal-brand-website-ten.vercel.app/"
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                src="Asset/NV.png"
+                alt="Nova Lane website"
+              />
               <div class="project-body">
-                <h4>Project Horizon</h4>
-                <p>Marketing website for a creative brand with bold storytelling.</p>
+                <h4>Nova Lane</h4>
+                <p>Personal brand experience with bold storytelling and creator-focused messaging.</p>
                 <span class="tech">HTML • CSS • JavaScript</span>
               </div>
-            </article>
-            <article class="glass-card project-card">
-              <img src="https://images.unsplash.com/photo-1508780709619-79562169bc64?auto=format&fit=crop&w=900&q=80" alt="Studio North portfolio" />
+            </a>
+            <a
+              class="glass-card project-card"
+              href="https://modern-e-commerce-landing.vercel.app/"
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                src="Asset/NS.png"
+                alt="Nova Store website"
+              />
               <div class="project-body">
-                <h4>Studio North</h4>
-                <p>Portfolio site featuring smooth animations and a modern gallery.</p>
-                <span class="tech">React • Tailwind • Vite</span>
+                <h4>Nova Store</h4>
+                <p>Modern e-commerce landing page with sleek product storytelling.</p>
+                <span class="tech">HTML • CSS • JavaScript</span>
               </div>
-            </article>
-            <article class="glass-card project-card">
-              <img src="https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?auto=format&fit=crop&w=900&q=80" alt="LaunchPad landing page" />
+            </a>
+            <a
+              class="glass-card project-card"
+              href="https://local-restraunt.vercel.app/"
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                src="Asset/EO.png"
+                alt="Ember and Olive website"
+              />
               <div class="project-body">
-                <h4>LaunchPad</h4>
-                <p>Conversion-focused landing page for a startup product release.</p>
-                <span class="tech">Next.js • TypeScript • Figma</span>
+                <h4>Ember &amp; Olive</h4>
+                <p>Restaurant concept site with rich visuals, menu highlights, and reservations flow.</p>
+                <span class="tech">HTML • CSS • JavaScript</span>
               </div>
-            </article>
+            </a>
+            <a
+              class="glass-card project-card"
+              href="https://event-page-drab.vercel.app/"
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                src="Asset/EH.png"
+                alt="Event Horizon website"
+              />
+              <div class="project-body">
+                <h4>Event Horizon</h4>
+                <p>Conference landing page featuring speaker highlights and schedule previews.</p>
+                <span class="tech">HTML • CSS • JavaScript</span>
+              </div>
+            </a>
+            <a
+              class="glass-card project-card"
+              href="https://saas-product-landing-1.vercel.app/"
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                src="Asset/PF.png"
+                alt="PulseFlow website"
+              />
+              <div class="project-body">
+                <h4>PulseFlow</h4>
+                <p>Modern SaaS marketing site with feature storytelling and product highlights.</p>
+                <span class="tech">HTML • CSS • JavaScript</span>
+              </div>
+            </a>
+            <a
+              class="glass-card project-card"
+              href="https://studyhatch.org/"
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                src="Asset/StudyHatch.png"
+                alt="Study Hatch website"
+              />
+              <div class="project-body">
+                <h4>Study Hatch</h4>
+                <p>
+                  Flagship learning platform with AI chat, multiplayer gamemodes, and pilot rollouts to two
+                  school districts.
+                </p>
+                <span class="tech">Next.js 14 • React • TypeScript • Tailwind CSS • Node.js • Vercel</span>
+              </div>
+            </a>
           </div>
         </div>
       </section>
@@ -147,47 +224,6 @@
         </div>
       </section>
 
-      <section id="portfolio" class="portfolio section">
-        <div class="container">
-          <div class="section-title">
-            <h2>Portfolio</h2>
-            <p class="section-lead">
-              Selected projects demonstrating craft, clarity, and measurable
-              impact.
-            </p>
-          </div>
-          <div class="portfolio-grid">
-            <figure class="portfolio-item" data-lightbox="https://images.unsplash.com/photo-1487014679447-9f8336841d58?auto=format&fit=crop&w=1400&q=80">
-              <img src="https://images.unsplash.com/photo-1487014679447-9f8336841d58?auto=format&fit=crop&w=800&q=80" alt="Workspace redesign" />
-              <figcaption>
-                <h3>Workspace Redesign</h3>
-                <p>Digital product for a creative agency.</p>
-              </figcaption>
-            </figure>
-            <figure class="portfolio-item" data-lightbox="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1400&q=80">
-              <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80" alt="SaaS dashboard" />
-              <figcaption>
-                <h3>Insightful Analytics</h3>
-                <p>SaaS dashboard for finance leaders.</p>
-              </figcaption>
-            </figure>
-            <figure class="portfolio-item" data-lightbox="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1400&q=80">
-              <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80" alt="Marketing site" />
-              <figcaption>
-                <h3>Marketing Launch</h3>
-                <p>Landing page for a growth campaign.</p>
-              </figcaption>
-            </figure>
-            <figure class="portfolio-item" data-lightbox="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1400&q=80">
-              <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80" alt="Team collaboration" />
-              <figcaption>
-                <h3>Collaboration Hub</h3>
-                <p>Community platform for remote teams.</p>
-              </figcaption>
-            </figure>
-          </div>
-        </div>
-      </section>
 
       <section id="testimonials" class="testimonials section">
         <div class="container">
@@ -226,6 +262,96 @@
                 </p>
                 <h4>Case Study Example</h4>
                 <span>Interested Prospect</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★★</div>
+                <p>
+                  "We appreciate the attention to detail. We are prepared to be
+                  an early client and set the standard together."
+                </p>
+                <h4>Growth Partner Example</h4>
+                <span>First Client Candidate</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★★</div>
+                <p>
+                  "The discovery approach is impressive. We are happy to be one
+                  of the first brands they bring to life."
+                </p>
+                <h4>Brand Story Example</h4>
+                <span>Incoming Client</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★☆</div>
+                <p>
+                  "We want a partner who cares about quality. We are ready to be
+                  the first official testimonial when we launch."
+                </p>
+                <h4>Launch Partner Example</h4>
+                <span>Pipeline Lead</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★★</div>
+                <p>
+                  "The communication is clear and professional. We are excited
+                  to be among the first success stories."
+                </p>
+                <h4>Success Story Example</h4>
+                <span>Future Client</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★☆</div>
+                <p>
+                  "We are seeking a reliable partner. This team has the right
+                  energy, and we are open to being their first case study."
+                </p>
+                <h4>Reliability Example</h4>
+                <span>Interested Lead</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★★</div>
+                <p>
+                  "The creative direction feels strong. We would be proud to be
+                  an early client as they grow."
+                </p>
+                <h4>Creative Partner Example</h4>
+                <span>Prospective Partner</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★☆</div>
+                <p>
+                  "The vision is clear and modern. We are ready to collaborate
+                  and be a first portfolio highlight."
+                </p>
+                <h4>Modern Vision Example</h4>
+                <span>Early Adopter</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★★</div>
+                <p>
+                  "We value craftsmanship and speed. We are open to being one of
+                  the first paying clients."
+                </p>
+                <h4>Quality Example</h4>
+                <span>New Client Prospect</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★☆</div>
+                <p>
+                  "Their approach feels organized and strategic. We are ready to
+                  join early and help define the results."
+                </p>
+                <h4>Strategy Example</h4>
+                <span>First Client Opportunity</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★★</div>
+                <p>
+                  "We want a partner who listens. We are confident being one of
+                  their first clients will be a win."
+                </p>
+                <h4>Listening Example</h4>
+                <span>Client Prospect</span>
               </article>
             </div>
             <div class="carousel-controls">
@@ -276,10 +402,12 @@
       </section>
     </main>
 
-    <div class="lightbox" aria-hidden="true">
-      <button class="lightbox-close" aria-label="Close image">×</button>
-      <img src="" alt="Expanded portfolio item" />
-    </div>
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© 2026 Vertex Studio. Crafted for visionary creators.</p>
+        <a class="back-to-top" href="#home">Back to top ↑</a>
+      </div>
+    </footer>
 
     <script src="script.js"></script>
   </body>

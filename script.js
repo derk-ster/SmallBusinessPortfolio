@@ -9,7 +9,7 @@ document.querySelectorAll(".nav a").forEach((link) => {
   link.addEventListener("click", () => nav.classList.remove("open"));
 });
 
-const fadeItems = document.querySelectorAll(".section, .about-photos, .service-card, .portfolio-item, .testimonial-card, .contact-form");
+const fadeItems = document.querySelectorAll(".section, .about-image, .service-card, .testimonial-card, .contact-form, .project-card");
 const observer = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
@@ -25,32 +25,6 @@ const observer = new IntersectionObserver(
 fadeItems.forEach((item) => {
   item.classList.add("fade-in");
   observer.observe(item);
-});
-
-const lightbox = document.querySelector(".lightbox");
-const lightboxImg = lightbox.querySelector("img");
-const lightboxClose = document.querySelector(".lightbox-close");
-
-document.querySelectorAll(".portfolio-item").forEach((item) => {
-  item.addEventListener("click", () => {
-    const src = item.dataset.lightbox;
-    lightboxImg.src = src;
-    lightbox.classList.add("active");
-    lightbox.setAttribute("aria-hidden", "false");
-  });
-});
-
-const closeLightbox = () => {
-  lightbox.classList.remove("active");
-  lightbox.setAttribute("aria-hidden", "true");
-  lightboxImg.src = "";
-};
-
-lightboxClose.addEventListener("click", closeLightbox);
-lightbox.addEventListener("click", (event) => {
-  if (event.target === lightbox) {
-    closeLightbox();
-  }
 });
 
 const carouselTrack = document.querySelector(".carousel-track");
