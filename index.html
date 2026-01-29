@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Small Business Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="logo" href="#home">NovaCraft</a>
+        <nav class="nav">
+          <a href="#home">Home</a>
+          <a href="#about">About</a>
+          <a href="#services">Services</a>
+          <a href="#portfolio">Portfolio</a>
+          <a href="#testimonials">Testimonials</a>
+          <a href="#contact">Contact</a>
+        </nav>
+        <button class="nav-toggle" aria-label="Toggle menu">Menu</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="home" class="hero">
+        <div class="hero-overlay"></div>
+        <div class="container hero-content">
+          <p class="eyebrow">Design + Development Studio</p>
+          <h1>Transforming Ideas Into Reality.</h1>
+          <p class="hero-subtitle">
+            I craft modern digital experiences that turn ambitious concepts
+            into beautiful, high-converting products.
+          </p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#portfolio">View Work</a>
+            <a class="btn ghost" href="#contact">Start a Project</a>
+          </div>
+          <div class="hero-stats">
+            <div>
+              <h3>12+</h3>
+              <p>Projects Delivered</p>
+              <span class="stat-note">Example figure as I build my first client portfolio.</span>
+            </div>
+            <div>
+              <h3>4.9/5</h3>
+              <p>Client Satisfaction</p>
+              <span class="stat-note">Sample rating — expect the same level of care.</span>
+            </div>
+            <div>
+              <h3>1.5 yrs</h3>
+              <p>Experience</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="about" class="about section">
+        <div class="container about-grid">
+          <div class="about-image glass-card">
+            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=640&q=80" alt="Derek portrait placeholder" />
+            <p class="image-caption">Replace this image with your portrait.</p>
+          </div>
+          <div class="about-copy">
+            <h2>About Me</h2>
+            <p class="section-lead">
+              Hi, I'm Derek, a web developer with 1.5 years of experience creating modern, interactive websites. I specialize in building fast, responsive, and visually stunning websites that help businesses and individuals stand out online.
+            </p>
+            <p>
+              Below are some of the websites I've built and brought to life. I focus on clean code, thoughtful UX, and reliable delivery for every project.
+            </p>
+          </div>
+        </div>
+        <div class="container about-projects">
+          <div class="section-title">
+            <h3>Previous Projects</h3>
+            <p class="section-lead">
+              A snapshot of recent builds, each tailored to a unique client goal.
+            </p>
+          </div>
+          <div class="projects-grid">
+            <article class="glass-card project-card">
+              <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=900&q=80" alt="Project Horizon website" />
+              <div class="project-body">
+                <h4>Project Horizon</h4>
+                <p>Marketing website for a creative brand with bold storytelling.</p>
+                <span class="tech">HTML • CSS • JavaScript</span>
+              </div>
+            </article>
+            <article class="glass-card project-card">
+              <img src="https://images.unsplash.com/photo-1508780709619-79562169bc64?auto=format&fit=crop&w=900&q=80" alt="Studio North portfolio" />
+              <div class="project-body">
+                <h4>Studio North</h4>
+                <p>Portfolio site featuring smooth animations and a modern gallery.</p>
+                <span class="tech">React • Tailwind • Vite</span>
+              </div>
+            </article>
+            <article class="glass-card project-card">
+              <img src="https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?auto=format&fit=crop&w=900&q=80" alt="LaunchPad landing page" />
+              <div class="project-body">
+                <h4>LaunchPad</h4>
+                <p>Conversion-focused landing page for a startup product release.</p>
+                <span class="tech">Next.js • TypeScript • Figma</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="services" class="services section">
+        <div class="container">
+          <div class="section-title">
+            <h2>Services</h2>
+            <p class="section-lead">
+              Everything you need to launch, grow, and refine your digital
+              presence.
+            </p>
+          </div>
+          <div class="services-grid">
+            <article class="glass-card service-card">
+              <div class="icon">💡</div>
+              <h3>Brand Strategy</h3>
+              <p>Positioning, messaging, and visual identity that resonates.</p>
+            </article>
+            <article class="glass-card service-card">
+              <div class="icon">🎨</div>
+              <h3>UI/UX Design</h3>
+              <p>Human-centered interfaces with conversion-focused journeys.</p>
+            </article>
+            <article class="glass-card service-card">
+              <div class="icon">⚡</div>
+              <h3>Web Development</h3>
+              <p>Fast, scalable websites optimized for performance and SEO.</p>
+            </article>
+            <article class="glass-card service-card">
+              <div class="icon">📈</div>
+              <h3>Growth Marketing</h3>
+              <p>Campaigns and content that generate leads and retention.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="portfolio" class="portfolio section">
+        <div class="container">
+          <div class="section-title">
+            <h2>Portfolio</h2>
+            <p class="section-lead">
+              Selected projects demonstrating craft, clarity, and measurable
+              impact.
+            </p>
+          </div>
+          <div class="portfolio-grid">
+            <figure class="portfolio-item" data-lightbox="https://images.unsplash.com/photo-1487014679447-9f8336841d58?auto=format&fit=crop&w=1400&q=80">
+              <img src="https://images.unsplash.com/photo-1487014679447-9f8336841d58?auto=format&fit=crop&w=800&q=80" alt="Workspace redesign" />
+              <figcaption>
+                <h3>Workspace Redesign</h3>
+                <p>Digital product for a creative agency.</p>
+              </figcaption>
+            </figure>
+            <figure class="portfolio-item" data-lightbox="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1400&q=80">
+              <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80" alt="SaaS dashboard" />
+              <figcaption>
+                <h3>Insightful Analytics</h3>
+                <p>SaaS dashboard for finance leaders.</p>
+              </figcaption>
+            </figure>
+            <figure class="portfolio-item" data-lightbox="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1400&q=80">
+              <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80" alt="Marketing site" />
+              <figcaption>
+                <h3>Marketing Launch</h3>
+                <p>Landing page for a growth campaign.</p>
+              </figcaption>
+            </figure>
+            <figure class="portfolio-item" data-lightbox="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1400&q=80">
+              <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80" alt="Team collaboration" />
+              <figcaption>
+                <h3>Collaboration Hub</h3>
+                <p>Community platform for remote teams.</p>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section id="testimonials" class="testimonials section">
+        <div class="container">
+          <div class="section-title">
+            <h2>Testimonials</h2>
+            <p class="section-lead">
+              Sample testimonials to set expectations while we earn our first
+              client partnerships.
+            </p>
+          </div>
+          <div class="carousel">
+            <div class="carousel-track">
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★★</div>
+                <p>
+                  "This studio shows real potential. We are excited to be among
+                  the first partners and help shape their early success."
+                </p>
+                <h4>Early Partner Example</h4>
+                <span>Prospective Client</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★★</div>
+                <p>
+                  "Their process is thoughtful and professional. We would be
+                  proud to be a first client as they build their portfolio."
+                </p>
+                <h4>Launch Example</h4>
+                <span>Future Collaboration</span>
+              </article>
+              <article class="glass-card testimonial-card">
+                <div class="stars">★★★★☆</div>
+                <p>
+                  "We are looking for a fresh partner and would welcome the
+                  opportunity to be their first official case study."
+                </p>
+                <h4>Case Study Example</h4>
+                <span>Interested Prospect</span>
+              </article>
+            </div>
+            <div class="carousel-controls">
+              <button class="carousel-btn prev" aria-label="Previous testimonial">‹</button>
+              <button class="carousel-btn next" aria-label="Next testimonial">›</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" class="contact section">
+        <div class="container contact-grid">
+          <div>
+            <h2>Let's build your next idea</h2>
+            <p class="section-lead">
+              Tell us about your goals. We will respond within 24 hours.
+            </p>
+            <form
+              class="contact-form"
+              action="mailto:derek.ray.2104@gmail.com"
+              method="post"
+              enctype="text/plain"
+            >
+              <div class="field">
+                <label for="name">Name</label>
+                <input id="name" name="name" type="text" placeholder="Your name" required />
+              </div>
+              <div class="field">
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" placeholder="you@email.com" required />
+              </div>
+              <div class="field">
+                <label for="subject">Subject</label>
+                <input id="subject" name="subject" type="text" placeholder="Project inquiry" required />
+              </div>
+              <div class="field field-heading">
+                <h3>Message Details</h3>
+                <p>Share goals, timelines, and any relevant links.</p>
+              </div>
+              <div class="field">
+                <label for="message">Message</label>
+                <textarea id="message" name="message" rows="5" placeholder="Tell us about your project" required></textarea>
+              </div>
+              <button class="btn primary" type="submit">Send Message</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="lightbox" aria-hidden="true">
+      <button class="lightbox-close" aria-label="Close image">×</button>
+      <img src="" alt="Expanded portfolio item" />
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
