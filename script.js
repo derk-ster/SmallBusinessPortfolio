@@ -1,6 +1,14 @@
 const navToggle = document.querySelector(".nav-toggle");
 const nav = document.querySelector(".nav");
 
+if ("scrollRestoration" in history) {
+  history.scrollRestoration = "manual";
+}
+
+window.addEventListener("load", () => {
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+});
+
 navToggle.addEventListener("click", () => {
   nav.classList.toggle("open");
 });

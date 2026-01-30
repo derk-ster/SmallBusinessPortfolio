@@ -51,14 +51,62 @@ a {
 }
 
 .services .section-title,
-.testimonials .section-title {
+.testimonials .section-title,
+.payments .section-title {
   text-align: center;
 }
 
 .services .section-title .section-lead,
-.testimonials .section-title .section-lead {
+.testimonials .section-title .section-lead,
+.payments .section-title .section-lead {
   margin-left: auto;
   margin-right: auto;
+}
+
+.pricing-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 24px;
+}
+
+.pricing-card {
+  text-align: center;
+  display: grid;
+  gap: 12px;
+}
+
+.pricing-card .price {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.pricing-card.featured {
+  border-color: rgba(123, 92, 255, 0.6);
+  box-shadow: 0 25px 60px rgba(123, 92, 255, 0.25);
+}
+
+.pricing-note {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.delivery-note,
+.how-it-works {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.how-it-works {
+  display: grid;
+  gap: 12px;
+}
+
+.link-highlight {
+  font-weight: 600;
+  color: #8ddcff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .section-title h2 {
