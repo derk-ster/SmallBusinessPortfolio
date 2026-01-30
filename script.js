@@ -190,9 +190,12 @@ if (portraitLightbox) {
   });
 }
 
+// Replace these with your values from https://dashboard.emailjs.com (see EMAILJS_SETUP.md)
 const EMAILJS_SERVICE_ID = "service_wcr1i89";
 const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
 const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+const EMAILJS_CONFIGURED =
+  EMAILJS_TEMPLATE_ID !== "YOUR_TEMPLATE_ID" && EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY";
 
 const messageSentModal = document.getElementById("message-sent-modal");
 const messageSentClose = document.querySelector(".message-sent-close");
@@ -223,15 +226,15 @@ if (messageSentModal) {
 function sendEmail(templateParams) {
   if (typeof emailjs === "undefined") {
     console.error("EmailJS not loaded");
-    showMessageSentModal();
-    return;
+    return Promise.reject(new Error("EmailJS script failed to load"));
   }
-  if (EMAILJS_TEMPLATE_ID === "YOUR_TEMPLATE_ID" || EMAILJS_PUBLIC_KEY === "YOUR_PUBLIC_KEY") {
-    console.warn("Replace YOUR_TEMPLATE_ID and YOUR_PUBLIC_KEY in script.js with values from EmailJS dashboard");
-    showMessageSentModal();
-    return;
+  if (!EMAILJS_CONFIGURED) {
+    console.warn("Replace YOUR_TEMPLATE_ID and YOUR_PUBLIC_KEY in script.js. See EMAILJS_SETUP.md");
+    return Promise.reject(new Error("Email not configured"));
   }
-  return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, { publicKey: EMAILJS_PUBLIC_KEY });
+  return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, {
+    publicKey: EMAILJS_PUBLIC_KEY,
+  });
 }
 
 const contactForm = document.getElementById("contact-form");
@@ -256,7 +259,10 @@ if (contactForm) {
       .then(() => showMessageSentModal())
       .catch((err) => {
         console.error("Email send failed", err);
-        showMessageSentModal();
+        const msg = !EMAILJS_CONFIGURED
+          ? "Email is not set up. Add your Template ID and Public Key in script.js (see EMAILJS_SETUP.md)."
+          : "Something went wrong sending your message. Check the console for details or try again later.";
+        alert(msg);
       });
   });
 }
@@ -282,7 +288,10 @@ if (questionsForm) {
       .then(() => showMessageSentModal())
       .catch((err) => {
         console.error("Email send failed", err);
-        showMessageSentModal();
+        const msg = !EMAILJS_CONFIGURED
+          ? "Email is not set up. Add your Template ID and Public Key in script.js (see EMAILJS_SETUP.md)."
+          : "Something went wrong sending your message. Check the console for details or try again later.";
+        alert(msg);
       });
   });
 }
