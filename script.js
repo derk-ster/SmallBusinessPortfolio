@@ -190,7 +190,10 @@ if (portraitLightbox) {
   });
 }
 
-const CONTACT_EMAIL = "derek.ray.21041@gmail.com";
+const EMAILJS_SERVICE_ID = "service_wcr1i89";
+const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
+const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+
 const messageSentModal = document.getElementById("message-sent-modal");
 const messageSentClose = document.querySelector(".message-sent-close");
 
@@ -217,6 +220,20 @@ if (messageSentModal) {
   });
 }
 
+function sendEmail(templateParams) {
+  if (typeof emailjs === "undefined") {
+    console.error("EmailJS not loaded");
+    showMessageSentModal();
+    return;
+  }
+  if (EMAILJS_TEMPLATE_ID === "YOUR_TEMPLATE_ID" || EMAILJS_PUBLIC_KEY === "YOUR_PUBLIC_KEY") {
+    console.warn("Replace YOUR_TEMPLATE_ID and YOUR_PUBLIC_KEY in script.js with values from EmailJS dashboard");
+    showMessageSentModal();
+    return;
+  }
+  return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, { publicKey: EMAILJS_PUBLIC_KEY });
+}
+
 const contactForm = document.getElementById("contact-form");
 if (contactForm) {
   contactForm.addEventListener("submit", (e) => {
@@ -227,10 +244,20 @@ if (contactForm) {
     const subject = document.getElementById("subject")?.value?.trim() || "";
     const message = document.getElementById("message")?.value?.trim() || "";
     const emailSubject = "[PURCHASE] " + (packageVal ? packageVal + " - " : "") + subject;
-    const emailBody = "Type: Purchase\n" + (packageVal ? "Package: " + packageVal + "\n\n" : "") + "Name: " + name + "\nEmail: " + email + "\n\nMessage:\n" + message;
-    const mailto = "mailto:" + encodeURIComponent(CONTACT_EMAIL) + "?subject=" + encodeURIComponent(emailSubject) + "&body=" + encodeURIComponent(emailBody);
-    window.location.href = mailto;
-    showMessageSentModal();
+    const templateParams = {
+      type: "Purchase",
+      package: packageVal,
+      from_name: name,
+      from_email: email,
+      subject: emailSubject,
+      message: message,
+    };
+    sendEmail(templateParams)
+      .then(() => showMessageSentModal())
+      .catch((err) => {
+        console.error("Email send failed", err);
+        showMessageSentModal();
+      });
   });
 }
 
@@ -243,9 +270,19 @@ if (questionsForm) {
     const subject = document.getElementById("q-subject")?.value?.trim() || "";
     const message = document.getElementById("q-message")?.value?.trim() || "";
     const emailSubject = "[QUESTION] " + subject;
-    const emailBody = "Type: Question\n\nName: " + name + "\nEmail: " + email + "\n\nMessage:\n" + message;
-    const mailto = "mailto:" + encodeURIComponent(CONTACT_EMAIL) + "?subject=" + encodeURIComponent(emailSubject) + "&body=" + encodeURIComponent(emailBody);
-    window.location.href = mailto;
-    showMessageSentModal();
+    const templateParams = {
+      type: "Question",
+      package: "",
+      from_name: name,
+      from_email: email,
+      subject: emailSubject,
+      message: message,
+    };
+    sendEmail(templateParams)
+      .then(() => showMessageSentModal())
+      .catch((err) => {
+        console.error("Email send failed", err);
+        showMessageSentModal();
+      });
   });
 }
