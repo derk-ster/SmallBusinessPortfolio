@@ -236,6 +236,12 @@
               client partnerships.
             </p>
           </div>
+          <div class="testimonial-tabs">
+            <button type="button" class="testimonial-tab active" data-tab="examples">Example testimonials</button>
+            <button type="button" class="testimonial-tab" data-tab="real">Real reviews</button>
+            <button type="button" class="testimonial-tab" data-tab="leave">Leave a review</button>
+          </div>
+          <div class="testimonial-panel active" id="testimonials-examples">
           <div class="carousel">
             <div class="carousel-track">
               <article class="glass-card testimonial-card">
@@ -361,6 +367,39 @@
               <button class="carousel-btn next" aria-label="Next testimonial">›</button>
             </div>
           </div>
+          </div>
+          <div class="testimonial-panel" id="testimonials-real">
+            <div class="real-reviews-list"></div>
+            <p class="real-reviews-empty">No real reviews yet. Be the first to leave one!</p>
+          </div>
+          <div class="testimonial-panel" id="testimonials-leave">
+            <form class="review-form glass-card">
+              <div class="field">
+                <label for="review-name">Your name</label>
+                <input id="review-name" name="name" type="text" placeholder="Your name" required />
+              </div>
+              <div class="field">
+                <label for="review-email">Email (optional)</label>
+                <input id="review-email" name="email" type="email" placeholder="you@email.com" />
+              </div>
+              <div class="field">
+                <label>Rating (1–5 stars)</label>
+                <div class="star-rating" aria-label="Rate 1 to 5 stars">
+                  <button type="button" class="star" data-value="1" aria-label="1 star">★</button>
+                  <button type="button" class="star" data-value="2" aria-label="2 stars">★</button>
+                  <button type="button" class="star" data-value="3" aria-label="3 stars">★</button>
+                  <button type="button" class="star" data-value="4" aria-label="4 stars">★</button>
+                  <button type="button" class="star" data-value="5" aria-label="5 stars">★</button>
+                </div>
+                <input type="hidden" name="rating" id="review-rating" value="0" required />
+              </div>
+              <div class="field">
+                <label for="review-message">Your review</label>
+                <textarea id="review-message" name="message" rows="4" placeholder="Share your experience..." required></textarea>
+              </div>
+              <button type="submit" class="btn primary">Submit review</button>
+            </form>
+          </div>
         </div>
       </section>
 
@@ -371,22 +410,95 @@
             <p class="section-lead">
               One-time website pricing. Even the Starter package delivers exceptional value.
             </p>
+            <p class="pricing-hint">Hover over a package for extra details.</p>
           </div>
           <div class="pricing-grid">
-            <article class="glass-card pricing-card">
-              <h3>Starter</h3>
-              <p class="price">$299</p>
-              <p>Ideal for a clean, modern single-page site.</p>
+            <article class="pricing-card">
+              <div class="pricing-inner glass-card">
+                <div class="pricing-face pricing-front">
+                  <h3>Starter</h3>
+                  <p class="price">$299</p>
+                  <p>Ideal for a clean, modern single-page site.</p>
+                </div>
+                <div class="pricing-face pricing-back">
+                  <div class="pricing-back-inner">
+                    <h3>Starter Package</h3>
+                    <strong>Included Fields / Features:</strong>
+                    <ul>
+                      <li>Business name</li>
+                      <li>Pages needed</li>
+                      <li>Colors / basic branding</li>
+                      <li>Text content</li>
+                    </ul>
+                    <strong>Restrictions:</strong>
+                    <ul>
+                      <li>Cannot include SEO optimization</li>
+                      <li>Cannot include advanced animations</li>
+                      <li>Cannot include blog or CMS functionality</li>
+                      <li>Cannot include web app features, dashboards, APIs, or e-commerce</li>
+                      <li>Limited to basic static pages</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </article>
-            <article class="glass-card pricing-card featured">
-              <h3>Business</h3>
-              <p class="price">$899</p>
-              <p>Great for growing brands that need more sections and polish.</p>
+            <article class="pricing-card featured">
+              <div class="pricing-inner glass-card">
+                <div class="pricing-face pricing-front">
+                  <h3>Business</h3>
+                  <p class="price">$899</p>
+                  <p>Great for growing brands that need more sections and polish.</p>
+                </div>
+                <div class="pricing-face pricing-back">
+                  <div class="pricing-back-inner">
+                    <h3>Business Package</h3>
+                    <strong>Included Fields / Features:</strong>
+                    <ul>
+                      <li>Everything in Starter</li>
+                      <li>SEO needs (basic)</li>
+                      <li>Animations (standard/limited)</li>
+                      <li>Blog/CMS integration</li>
+                    </ul>
+                    <strong>Restrictions:</strong>
+                    <ul>
+                      <li>Cannot include complex web app features</li>
+                      <li>Cannot include dashboards for internal business analytics</li>
+                      <li>Cannot include custom APIs</li>
+                      <li>Cannot include full e-commerce solutions</li>
+                      <li>Animations are limited to simple interactions (no 3D or advanced effects)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </article>
-            <article class="glass-card pricing-card">
-              <h3>Premium</h3>
-              <p class="price">$2,499</p>
-              <p>Best for advanced layout, strategy, and conversion focus.</p>
+            <article class="pricing-card">
+              <div class="pricing-inner glass-card">
+                <div class="pricing-face pricing-front">
+                  <h3>Premium</h3>
+                  <p class="price">$2,499</p>
+                  <p>Best for advanced layout, strategy, and conversion focus.</p>
+                </div>
+                <div class="pricing-face pricing-back">
+                  <div class="pricing-back-inner">
+                    <h3>Premium Package</h3>
+                    <strong>Included Fields / Features:</strong>
+                    <ul>
+                      <li>Everything in Business</li>
+                      <li>Web app features (e.g., interactive tools, calculators)</li>
+                      <li>Dashboard (admin panel / analytics)</li>
+                      <li>APIs (integration with third-party services)</li>
+                      <li>E-commerce (shopping cart, payment integration)</li>
+                    </ul>
+                    <strong>Restrictions:</strong>
+                    <ul>
+                      <li>No artificial limitations on pages, colors, or content</li>
+                      <li>Animations can be advanced, but must stay performant (cannot include heavy, laggy 3D models unless specified)</li>
+                      <li>SEO is fully included (cannot opt-out for premium, only adjustable)</li>
+                      <li>CMS must support complex content but not custom-built proprietary platforms outside allowed tech stack</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </article>
           </div>
           <div class="pricing-note glass-card">
@@ -437,6 +549,15 @@
               enctype="text/plain"
             >
               <div class="field">
+                <label for="package">Package</label>
+                <select id="package" name="package" required>
+                  <option value="">Choose a package</option>
+                  <option value="Starter ($299)">Starter ($299)</option>
+                  <option value="Business ($899)">Business ($899)</option>
+                  <option value="Premium ($2,499)">Premium ($2,499)</option>
+                </select>
+              </div>
+              <div class="field">
                 <label for="name">Name</label>
                 <input id="name" name="name" type="text" placeholder="Your name" required />
               </div>
@@ -450,7 +571,7 @@
               </div>
               <div class="field field-heading">
                 <h3>Message Details</h3>
-                <p>Share goals, timelines, and any relevant links.</p>
+                <p>Share goals, timelines, and any relevant links. Send pictures if needed.</p>
               </div>
               <div class="field">
                 <label for="message">Message</label>
@@ -458,6 +579,20 @@
               </div>
               <button class="btn primary" type="submit">Send Message</button>
             </form>
+            <div class="payment-box glass-card">
+              <h3>Secure Payment</h3>
+              <p>
+                Pay by card using Stripe or PayPal. Payment links will go live
+                after your project scope is confirmed.
+              </p>
+              <div class="payment-actions">
+                <button class="btn primary" type="button" disabled>Pay with Card (Stripe)</button>
+                <button class="btn ghost" type="button" disabled>Pay with Card (PayPal)</button>
+              </div>
+              <p class="payment-note">
+                Payments are enabled once the Stripe and PayPal keys are added.
+              </p>
+            </div>
           </div>
         </div>
       </section>

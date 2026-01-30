@@ -62,3 +62,98 @@ setInterval(() => {
   carouselIndex = (carouselIndex + 1) % carouselCards.length;
   updateCarousel();
 }, 6000);
+
+const TESTIMONIALS_STORAGE_KEY = "vertex-studio-real-reviews";
+
+function getStoredReviews() {
+  try {
+    const raw = localStorage.getItem(TESTIMONIALS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveReview(data) {
+  const reviews = getStoredReviews();
+  reviews.unshift({
+    id: Date.now(),
+    name: data.name,
+    email: data.email || "",
+    rating: data.rating,
+    message: data.message,
+    date: new Date().toISOString(),
+  });
+  localStorage.setItem(TESTIMONIALS_STORAGE_KEY, JSON.stringify(reviews));
+}
+
+function starsHtml(rating) {
+  const full = "★".repeat(Math.floor(rating));
+  const empty = "☆".repeat(5 - Math.floor(rating));
+  return full + empty;
+}
+
+function renderRealReviews() {
+  const list = document.querySelector(".real-reviews-list");
+  const empty = document.querySelector(".real-reviews-empty");
+  if (!list) return;
+  const reviews = getStoredReviews();
+  list.innerHTML = "";
+  reviews.forEach((r) => {
+    const card = document.createElement("article");
+    card.className = "glass-card real-review-card";
+    const dateStr = r.date ? new Date(r.date).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "";
+    card.innerHTML = `
+      <div class="stars" aria-label="${r.rating} out of 5 stars">${starsHtml(r.rating)}</div>
+      <p>"${r.message.replace(/"/g, "&quot;")}"</p>
+      <h4>${r.name.replace(/</g, "&lt;")}</h4>
+      <span class="review-meta">${dateStr}</span>
+    `;
+    list.appendChild(card);
+  });
+  if (empty) empty.style.display = reviews.length ? "none" : "block";
+}
+
+document.querySelectorAll(".testimonial-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const tabName = tab.getAttribute("data-tab");
+    document.querySelectorAll(".testimonial-tab").forEach((t) => t.classList.remove("active"));
+    document.querySelectorAll(".testimonial-panel").forEach((p) => p.classList.remove("active"));
+    tab.classList.add("active");
+    const panel = document.getElementById("testimonials-" + tabName);
+    if (panel) panel.classList.add("active");
+  });
+});
+
+const starRating = document.querySelector(".star-rating");
+const ratingInput = document.getElementById("review-rating");
+if (starRating && ratingInput) {
+  const stars = starRating.querySelectorAll(".star");
+  stars.forEach((star) => {
+    star.addEventListener("click", () => {
+      const value = parseInt(star.getAttribute("data-value"), 10);
+      ratingInput.value = value;
+      stars.forEach((s, i) => s.classList.toggle("filled", i < value));
+    });
+  });
+}
+
+const reviewForm = document.querySelector(".review-form");
+if (reviewForm) {
+  reviewForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("review-name").value.trim();
+    const email = document.getElementById("review-email").value.trim();
+    const rating = parseInt(ratingInput.value, 10) || 0;
+    const message = document.getElementById("review-message").value.trim();
+    if (!name || !message || rating < 1 || rating > 5) return;
+    saveReview({ name, email, rating, message });
+    renderRealReviews();
+    reviewForm.reset();
+    ratingInput.value = "0";
+    document.querySelectorAll(".star-rating .star").forEach((s) => s.classList.remove("filled"));
+    document.querySelector('.testimonial-tab[data-tab="real"]').click();
+  });
+}
+
+renderRealReviews();
