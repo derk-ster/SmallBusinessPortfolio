@@ -51,14 +51,18 @@ a {
 }
 
 .services .section-title,
+.education-experience .section-title,
 .testimonials .section-title,
-.payments .section-title {
+.payments .section-title,
+.questions .section-title {
   text-align: center;
 }
 
 .services .section-title .section-lead,
+.education-experience .section-title .section-lead,
 .testimonials .section-title .section-lead,
-.payments .section-title .section-lead {
+.payments .section-title .section-lead,
+.questions .section-title .section-lead {
   margin-left: auto;
   margin-right: auto;
 }
@@ -192,9 +196,23 @@ a {
   text-underline-offset: 4px;
 }
 
+h2:has(.section-title-emoji),
+h3:has(.section-title-emoji) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .section-title h2 {
   font-size: clamp(2rem, 3vw, 2.8rem);
   margin-bottom: 12px;
+}
+
+.section-title-emoji {
+  font-style: normal;
+  line-height: 1;
 }
 
 .section-lead {
@@ -579,6 +597,46 @@ a {
   margin-bottom: 16px;
 }
 
+.edu-exp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 28px;
+  margin-top: 28px;
+}
+
+.edu-exp-card {
+  display: grid;
+  gap: 14px;
+}
+
+.edu-exp-card h3 {
+  font-size: 1.35rem;
+  margin-bottom: 4px;
+}
+
+.edu-exp-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.edu-exp-card p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.edu-exp-card ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.edu-exp-card li {
+  margin-bottom: 6px;
+}
+
 .testimonials .carousel {
   position: relative;
   overflow: hidden;
@@ -743,26 +801,47 @@ a {
   margin-top: 20px;
 }
 
-.payment-box {
-  margin-top: 24px;
+.questions-form {
+  max-width: 520px;
+  margin: 0 auto;
   display: grid;
-  gap: 14px;
+  gap: 18px;
+  padding: 28px;
 }
 
-.payment-actions {
+.message-sent-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 16, 34, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 40;
+}
+
+.message-sent-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.message-sent-content {
+  padding: 32px;
+  text-align: center;
   display: grid;
-  gap: 12px;
+  gap: 20px;
+  max-width: 360px;
 }
 
-.payment-actions .btn[disabled] {
-  cursor: not-allowed;
-  opacity: 0.6;
-  box-shadow: none;
+.message-sent-text {
+  font-size: 1.15rem;
+  margin: 0;
 }
 
-.payment-note {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+.message-sent-close {
+  justify-self: center;
 }
 
 .site-footer {

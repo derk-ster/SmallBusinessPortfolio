@@ -24,6 +24,7 @@
           <a href="#home">Home</a>
           <a href="#about">About</a>
           <a href="#services">Services</a>
+          <a href="#education-experience">Education & Experience</a>
           <a href="#testimonials">Testimonials</a>
           <a href="#payments">Payments</a>
           <a href="#contact">Contact</a>
@@ -68,7 +69,7 @@
       <section id="about" class="about section">
         <div class="container about-grid">
           <div class="about-copy">
-            <h2>About Me</h2>
+            <h2><span class="section-title-emoji">👋</span> About Me <span class="section-title-emoji">👤</span></h2>
             <p class="section-lead">
               Hi, I'm Derek, a web developer with 1.5 years of experience creating modern, interactive websites. I specialize in building fast, responsive, and visually stunning websites that help businesses and individuals stand out online.
             </p>
@@ -85,7 +86,7 @@
         </div>
         <div class="container about-projects" id="projects">
           <div class="section-title">
-            <h3>Previous Projects / Portfolio</h3>
+            <h3><span class="section-title-emoji">📂</span> Previous Projects / Portfolio <span class="section-title-emoji">🖼️</span></h3>
             <p class="section-lead">
               A snapshot of recent builds, each tailored to a unique client goal.
             </p>
@@ -197,7 +198,7 @@
       <section id="services" class="services section">
         <div class="container">
           <div class="section-title">
-            <h2>Services</h2>
+            <h2><span class="section-title-emoji">🛠️</span> Services <span class="section-title-emoji">⚙️</span></h2>
             <p class="section-lead">
               Everything you need to launch, grow, and refine your digital
               presence.
@@ -228,11 +229,44 @@
         </div>
       </section>
 
+      <section id="education-experience" class="education-experience section">
+        <div class="container">
+          <div class="section-title">
+            <h2><span class="section-title-emoji">📚</span> Education and Experience <span class="section-title-emoji">🎓</span></h2>
+            <p class="section-lead">
+              Background in independent development and ongoing learning.
+            </p>
+          </div>
+          <div class="edu-exp-grid">
+            <article class="glass-card edu-exp-card">
+              <h3>Experience</h3>
+              <h4>Independent Web Developer | 1.5+ Years</h4>
+              <p>Designed, built, and deployed 7 full websites, including this portfolio.</p>
+              <p>Proficient in HTML, CSS, JavaScript, TypeScript, React, Next.js, Node.js, Tailwind CSS.</p>
+              <p>Focused on responsive design, clean code, and intuitive user experiences.</p>
+              <p>Experienced in both front-end and back-end development, delivering complete, production-ready solutions.</p>
+              <p>Constantly expanding skills with new frameworks and full-stack methodologies.</p>
+            </article>
+            <article class="glass-card edu-exp-card">
+              <h3>Education</h3>
+              <h4>Self-Taught Web Developer | Ongoing</h4>
+              <p>Completed foundational coding through mimo.org, learning core programming and web concepts.</p>
+              <p>Currently enrolled in a Full-Stack Web Development course, strengthening knowledge in:</p>
+              <ul>
+                <li>Server-side development & database management</li>
+                <li>Advanced application architecture</li>
+                <li>Modern development workflows and tools</li>
+              </ul>
+              <p>Hands-on project experience complements formal learning, bridging theory and real-world application.</p>
+            </article>
+          </div>
+        </div>
+      </section>
 
       <section id="testimonials" class="testimonials section">
         <div class="container">
           <div class="section-title">
-            <h2>Testimonials</h2>
+            <h2><span class="section-title-emoji">⭐</span> Testimonials <span class="section-title-emoji">💬</span></h2>
             <p class="section-lead">
               Sample testimonials to set expectations while we earn our first
               client partnerships.
@@ -408,7 +442,7 @@
       <section id="payments" class="payments section">
         <div class="container">
           <div class="section-title">
-            <h2>Payments</h2>
+            <h2><span class="section-title-emoji">💰</span> Payments <span class="section-title-emoji">💵</span></h2>
             <p class="section-lead">
               One-time website pricing. Even the Starter package delivers exceptional value.
             </p>
@@ -540,16 +574,17 @@
       <section id="contact" class="contact section">
         <div class="container contact-grid">
           <div>
-            <h2>Let's build your next idea</h2>
+            <h2><span class="section-title-emoji">📧</span> Let's build your next idea <span class="section-title-emoji">✉️</span></h2>
             <p class="section-lead">
               Tell us about your goals. We will respond within 24 hours.
             </p>
             <form
+              id="contact-form"
               class="contact-form"
-              action="mailto:derek.ray.2104@gmail.com"
-              method="post"
-              enctype="text/plain"
+              action="#"
+              method="get"
             >
+              <input type="hidden" name="type" value="Purchase" />
               <div class="field">
                 <label for="package">Package</label>
                 <select id="package" name="package" required>
@@ -581,24 +616,47 @@
               </div>
               <button class="btn primary" type="submit">Send Message</button>
             </form>
-            <div class="payment-box glass-card">
-              <h3>Secure Payment</h3>
-              <p>
-                Pay by card using Stripe or PayPal. Payment links will go live
-                after your project scope is confirmed.
-              </p>
-              <div class="payment-actions">
-                <button class="btn primary" type="button" disabled>Pay with Card (Stripe)</button>
-                <button class="btn ghost" type="button" disabled>Pay with Card (PayPal)</button>
-              </div>
-              <p class="payment-note">
-                Payments are enabled once the Stripe and PayPal keys are added.
-              </p>
-            </div>
           </div>
         </div>
       </section>
+
+      <section id="questions" class="questions section">
+        <div class="container">
+          <div class="section-title">
+            <h2><span class="section-title-emoji">❓</span> Questions? <span class="section-title-emoji">💬</span></h2>
+            <p class="section-lead">
+              Have a quick question? Send a message and I'll get back to you shortly.
+            </p>
+          </div>
+          <form id="questions-form" class="questions-form glass-card">
+            <div class="field">
+              <label for="q-name">Name</label>
+              <input id="q-name" name="name" type="text" placeholder="Your name" required />
+            </div>
+            <div class="field">
+              <label for="q-email">Email</label>
+              <input id="q-email" name="email" type="email" placeholder="you@email.com" required />
+            </div>
+            <div class="field">
+              <label for="q-subject">Subject</label>
+              <input id="q-subject" name="subject" type="text" placeholder="Your question topic" required />
+            </div>
+            <div class="field">
+              <label for="q-message">Message</label>
+              <textarea id="q-message" name="message" rows="4" placeholder="Ask your question..." required></textarea>
+            </div>
+            <button type="submit" class="btn primary">Send question</button>
+          </form>
+        </div>
+      </section>
     </main>
+
+    <div id="message-sent-modal" class="message-sent-modal" aria-hidden="true">
+      <div class="message-sent-content glass-card">
+        <p class="message-sent-text">Message sent! I'll get back to you shortly.</p>
+        <button type="button" class="btn primary message-sent-close">OK</button>
+      </div>
+    </div>
 
     <div class="portrait-lightbox" id="portrait-lightbox" aria-hidden="true">
       <button type="button" class="portrait-lightbox-close" aria-label="Close">×</button>

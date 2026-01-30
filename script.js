@@ -17,7 +17,7 @@ document.querySelectorAll(".nav a").forEach((link) => {
   link.addEventListener("click", () => nav.classList.remove("open"));
 });
 
-const fadeItems = document.querySelectorAll(".section, .about-image, .service-card, .testimonial-card, .contact-form, .project-card");
+const fadeItems = document.querySelectorAll(".section, .about-image, .service-card, .edu-exp-card, .testimonial-card, .contact-form, .questions-form, .project-card");
 const observer = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
@@ -187,5 +187,65 @@ if (portraitLightbox) {
       portraitLightbox.setAttribute("aria-hidden", "true");
       portraitLightboxImg && (portraitLightboxImg.src = "");
     }
+  });
+}
+
+const CONTACT_EMAIL = "derek.ray.21041@gmail.com";
+const messageSentModal = document.getElementById("message-sent-modal");
+const messageSentClose = document.querySelector(".message-sent-close");
+
+function showMessageSentModal() {
+  if (messageSentModal) {
+    messageSentModal.classList.add("active");
+    messageSentModal.setAttribute("aria-hidden", "false");
+  }
+}
+
+function closeMessageSentModal() {
+  if (messageSentModal) {
+    messageSentModal.classList.remove("active");
+    messageSentModal.setAttribute("aria-hidden", "true");
+  }
+}
+
+if (messageSentClose) {
+  messageSentClose.addEventListener("click", closeMessageSentModal);
+}
+if (messageSentModal) {
+  messageSentModal.addEventListener("click", (e) => {
+    if (e.target === messageSentModal) closeMessageSentModal();
+  });
+}
+
+const contactForm = document.getElementById("contact-form");
+if (contactForm) {
+  contactForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const packageVal = document.getElementById("package")?.value || "";
+    const name = document.getElementById("name")?.value?.trim() || "";
+    const email = document.getElementById("email")?.value?.trim() || "";
+    const subject = document.getElementById("subject")?.value?.trim() || "";
+    const message = document.getElementById("message")?.value?.trim() || "";
+    const emailSubject = "[PURCHASE] " + (packageVal ? packageVal + " - " : "") + subject;
+    const emailBody = "Type: Purchase\n" + (packageVal ? "Package: " + packageVal + "\n\n" : "") + "Name: " + name + "\nEmail: " + email + "\n\nMessage:\n" + message;
+    const mailto = "mailto:" + encodeURIComponent(CONTACT_EMAIL) + "?subject=" + encodeURIComponent(emailSubject) + "&body=" + encodeURIComponent(emailBody);
+    window.location.href = mailto;
+    showMessageSentModal();
+  });
+}
+
+const questionsForm = document.getElementById("questions-form");
+if (questionsForm) {
+  questionsForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("q-name")?.value?.trim() || "";
+    const email = document.getElementById("q-email")?.value?.trim() || "";
+    const subject = document.getElementById("q-subject")?.value?.trim() || "";
+    const message = document.getElementById("q-message")?.value?.trim() || "";
+    const emailSubject = "[QUESTION] " + subject;
+    const emailBody = "Type: Question\n\nName: " + name + "\nEmail: " + email + "\n\nMessage:\n" + message;
+    const mailto = "mailto:" + encodeURIComponent(CONTACT_EMAIL) + "?subject=" + encodeURIComponent(emailSubject) + "&body=" + encodeURIComponent(emailBody);
+    window.location.href = mailto;
+    showMessageSentModal();
   });
 }
