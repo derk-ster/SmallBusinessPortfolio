@@ -192,8 +192,8 @@ if (portraitLightbox) {
 
 // Replace these with your values from https://dashboard.emailjs.com (see EMAILJS_SETUP.md)
 const EMAILJS_SERVICE_ID = "service_wcr1i89";
-const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
-const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+const EMAILJS_TEMPLATE_ID = "template_d7d4tl3";
+const EMAILJS_PUBLIC_KEY = "aaiWpriPi8RNMHKam";
 const EMAILJS_CONFIGURED =
   EMAILJS_TEMPLATE_ID !== "YOUR_TEMPLATE_ID" && EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY";
 
