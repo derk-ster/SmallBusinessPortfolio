@@ -77,7 +77,9 @@
             </p>
           </div>
           <div class="about-image glass-card">
-            <img src="Asset/AboutMe.png" alt="A portrait of Derek" />
+            <button type="button" class="portrait-trigger" aria-label="View larger portrait">
+              <img src="Asset/AboutMe.png" alt="A portrait of Derek" />
+            </button>
             <p class="image-caption">A portrait of Derek.</p>
           </div>
         </div>
@@ -597,6 +599,11 @@
         </div>
       </section>
     </main>
+
+    <div class="portrait-lightbox" id="portrait-lightbox" aria-hidden="true">
+      <button type="button" class="portrait-lightbox-close" aria-label="Close">×</button>
+      <img src="" alt="Portrait of Derek (larger)" />
+    </div>
 
     <footer class="site-footer">
       <div class="container footer-inner">

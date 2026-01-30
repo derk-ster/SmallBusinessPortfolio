@@ -157,3 +157,35 @@ if (reviewForm) {
 }
 
 renderRealReviews();
+
+const portraitTrigger = document.querySelector(".portrait-trigger");
+const portraitLightbox = document.getElementById("portrait-lightbox");
+const portraitLightboxImg = portraitLightbox?.querySelector("img");
+const portraitLightboxClose = portraitLightbox?.querySelector(".portrait-lightbox-close");
+
+if (portraitTrigger && portraitLightbox && portraitLightboxImg) {
+  const portraitSrc = portraitTrigger.querySelector("img")?.src;
+  portraitTrigger.addEventListener("click", () => {
+    if (portraitSrc) portraitLightboxImg.src = portraitSrc;
+    portraitLightbox.classList.add("active");
+    portraitLightbox.setAttribute("aria-hidden", "false");
+  });
+}
+
+if (portraitLightboxClose) {
+  portraitLightboxClose.addEventListener("click", () => {
+    portraitLightbox?.classList.remove("active");
+    portraitLightbox?.setAttribute("aria-hidden", "true");
+    portraitLightboxImg && (portraitLightboxImg.src = "");
+  });
+}
+
+if (portraitLightbox) {
+  portraitLightbox.addEventListener("click", (e) => {
+    if (e.target === portraitLightbox) {
+      portraitLightbox.classList.remove("active");
+      portraitLightbox.setAttribute("aria-hidden", "true");
+      portraitLightboxImg && (portraitLightboxImg.src = "");
+    }
+  });
+}
