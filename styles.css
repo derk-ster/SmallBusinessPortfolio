@@ -992,43 +992,207 @@ select:focus {
   }
 }
 
+/* Small screens: scrollable header nav + tighter layout (desktop unchanged) */
 @media (max-width: 900px) {
+  .site-header {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .site-header .container {
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+  }
+
+  .header-inner {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 16px;
+    padding: 12px 20px;
+  }
+
   .nav {
-    display: none;
+    display: flex;
+    flex-shrink: 0;
+    gap: 14px;
+  }
+
+  .nav a {
+    padding: 6px 4px;
+    white-space: nowrap;
   }
 
   .nav.open {
     display: flex;
-    flex-direction: column;
-    position: absolute;
-    right: 5%;
-    top: 68px;
-    background: rgba(12, 16, 34, 0.95);
-    padding: 16px 20px;
-    border-radius: 18px;
-    box-shadow: var(--shadow);
   }
 
   .nav-toggle {
-    display: inline-flex;
+    display: none;
+  }
+
+  .logo img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .logo-text {
+    font-size: 0.95rem;
   }
 
   .hero {
-    min-height: 80vh;
+    min-height: 70vh;
+  }
+
+  .hero-content {
+    padding: 80px 0;
+  }
+
+  .section {
+    padding: 60px 0;
+  }
+
+  .section-title {
+    margin-bottom: 28px;
+  }
+
+  .glass-card {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .container {
+    width: min(1120px, 94%);
+  }
+
+  .about-projects {
+    margin-top: 44px;
+  }
+
+  .projects-grid,
+  .services-grid {
+    gap: 20px;
+  }
+
+  .pricing-grid {
+    gap: 20px;
   }
 }
 
 @media (max-width: 600px) {
   .section {
-    padding: 80px 0;
+    padding: 44px 0;
+  }
+
+  .section-title {
+    margin-bottom: 22px;
   }
 
   .hero-content {
-    padding: 100px 0;
+    padding: 60px 0;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 8vw, 2.8rem);
+  }
+
+  .hero-stats {
+    gap: 14px;
+  }
+
+  .hero-stats h3 {
+    font-size: 1.5rem;
   }
 
   .hero-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .about-grid {
+    gap: 32px;
+  }
+
+  .glass-card {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .container {
+    width: min(1120px, 96%);
+  }
+
+  .contact-form,
+  .questions-form {
+    gap: 14px;
+  }
+
+  .message-sent-content,
+  .cooldown-modal .message-sent-content {
+    padding: 24px;
+    max-width: 92%;
+  }
+
+  .site-footer {
+    padding: 20px 0 28px;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .about-projects {
+    margin-top: 40px;
+  }
+
+  .projects-grid {
+    gap: 18px;
+  }
+
+  .project-body {
+    padding: 16px;
+  }
+
+  .project-card img {
+    height: 160px;
+  }
+
+  .services-grid {
+    gap: 16px;
+  }
+
+  .edu-exp-grid {
+    gap: 20px;
+  }
+
+  .pricing-grid {
+    gap: 18px;
+  }
+
+  .pricing-inner {
+    min-height: 260px;
+  }
+
+  .testimonial-card {
+    min-height: 200px;
+    gap: 12px;
+  }
+
+  .carousel-track {
+    grid-auto-columns: minmax(260px, 1fr);
+    gap: 18px;
+  }
+
+  .testimonial-tabs {
+    gap: 8px;
+  }
+
+  .review-form,
+  .real-review-card {
+    padding: 20px;
   }
 }
