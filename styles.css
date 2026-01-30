@@ -871,6 +871,15 @@ h3:has(.section-title-emoji) {
   visibility: visible;
 }
 
+.cooldown-modal .cooldown-text {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cooldown-modal #cooldown-time {
+  font-variant-numeric: tabular-nums;
+}
+
 .message-sent-content {
   padding: 32px;
   text-align: center;

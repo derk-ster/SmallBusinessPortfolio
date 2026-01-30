@@ -223,6 +223,69 @@ if (messageSentModal) {
   });
 }
 
+// Rate limit: one submission (contact or questions) per 10 minutes per browser
+const FORM_COOLDOWN_MS = 10 * 60 * 1000;
+const FORM_LAST_SENT_KEY = "vertex-studio-last-form-sent";
+
+function getFormCooldownRemainingMs() {
+  const last = localStorage.getItem(FORM_LAST_SENT_KEY);
+  if (!last) return 0;
+  const elapsed = Date.now() - Number(last);
+  return elapsed >= FORM_COOLDOWN_MS ? 0 : FORM_COOLDOWN_MS - elapsed;
+}
+
+function formatCooldownMs(ms) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return m + ":" + (s < 10 ? "0" : "") + s;
+}
+
+function setFormCooldown() {
+  localStorage.setItem(FORM_LAST_SENT_KEY, String(Date.now()));
+}
+
+const cooldownModal = document.getElementById("cooldown-modal");
+const cooldownTimeEl = document.getElementById("cooldown-time");
+const cooldownCloseBtn = document.querySelector(".cooldown-close");
+let cooldownTickId = null;
+
+function updateCooldownDisplay() {
+  const remaining = getFormCooldownRemainingMs();
+  if (cooldownTimeEl) cooldownTimeEl.textContent = formatCooldownMs(remaining);
+  if (remaining <= 0) {
+    closeCooldownModal();
+  }
+}
+
+function showCooldownModal() {
+  if (!cooldownModal) return;
+  updateCooldownDisplay();
+  cooldownModal.classList.add("active");
+  cooldownModal.setAttribute("aria-hidden", "false");
+  if (cooldownTickId) clearInterval(cooldownTickId);
+  cooldownTickId = setInterval(updateCooldownDisplay, 1000);
+}
+
+function closeCooldownModal() {
+  if (!cooldownModal) return;
+  cooldownModal.classList.remove("active");
+  cooldownModal.setAttribute("aria-hidden", "true");
+  if (cooldownTickId) {
+    clearInterval(cooldownTickId);
+    cooldownTickId = null;
+  }
+}
+
+if (cooldownCloseBtn) {
+  cooldownCloseBtn.addEventListener("click", closeCooldownModal);
+}
+if (cooldownModal) {
+  cooldownModal.addEventListener("click", (e) => {
+    if (e.target === cooldownModal) closeCooldownModal();
+  });
+}
+
 function sendEmail(templateParams) {
   if (typeof emailjs === "undefined") {
     console.error("EmailJS not loaded");
@@ -241,6 +304,11 @@ const contactForm = document.getElementById("contact-form");
 if (contactForm) {
   contactForm.addEventListener("submit", (e) => {
     e.preventDefault();
+    const remaining = getFormCooldownRemainingMs();
+    if (remaining > 0) {
+      showCooldownModal();
+      return;
+    }
     const packageVal = document.getElementById("package")?.value || "";
     const name = document.getElementById("name")?.value?.trim() || "";
     const email = document.getElementById("email")?.value?.trim() || "";
@@ -256,7 +324,10 @@ if (contactForm) {
       message: message,
     };
     sendEmail(templateParams)
-      .then(() => showMessageSentModal())
+      .then(() => {
+        setFormCooldown();
+        showMessageSentModal();
+      })
       .catch((err) => {
         console.error("Email send failed", err);
         const msg = !EMAILJS_CONFIGURED
@@ -271,6 +342,11 @@ const questionsForm = document.getElementById("questions-form");
 if (questionsForm) {
   questionsForm.addEventListener("submit", (e) => {
     e.preventDefault();
+    const remaining = getFormCooldownRemainingMs();
+    if (remaining > 0) {
+      showCooldownModal();
+      return;
+    }
     const name = document.getElementById("q-name")?.value?.trim() || "";
     const email = document.getElementById("q-email")?.value?.trim() || "";
     const subject = document.getElementById("q-subject")?.value?.trim() || "";
@@ -285,7 +361,10 @@ if (questionsForm) {
       message: message,
     };
     sendEmail(templateParams)
-      .then(() => showMessageSentModal())
+      .then(() => {
+        setFormCooldown();
+        showMessageSentModal();
+      })
       .catch((err) => {
         console.error("Email send failed", err);
         const msg = !EMAILJS_CONFIGURED
