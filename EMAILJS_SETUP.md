@@ -8,6 +8,7 @@ Forms use **EmailJS** so messages go to **derek.ray.21041@gmail.com**. Service I
 2. Set:
    - **To Email:** `derek.ray.21041@gmail.com`
    - **Subject:** `{{subject}}`
+   - **Reply To:** `{{from_email}}` — **required** so when you click Reply in Gmail, your reply goes to the client who filled the form (not back to yourself).
    - **Content (Body):** use these variables (copy-paste):
 
 ```
