@@ -95,115 +95,141 @@ main > * {
   margin-right: auto;
 }
 
-.pricing-grid {
-  display: grid;
-  gap: 24px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+.business-offer {
   margin-top: 24px;
-}
-
-.pricing-hint {
-  margin-top: 10px;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  color: #ffffff;
-}
-
-.pricing-card {
   text-align: center;
   display: grid;
-  gap: 12px;
-}
-
-.pricing-inner {
-  position: relative;
-  min-height: 300px;
-  border-radius: 24px;
-}
-
-.pricing-face {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  align-content: center;
-  gap: 12px;
-  padding: 24px;
-  border-radius: 24px;
-  overflow: hidden;
-  transition: opacity 0.35s ease, visibility 0.35s ease;
-}
-
-.pricing-face strong {
-  font-size: 0.95rem;
-  letter-spacing: 0.2px;
-}
-
-.pricing-front {
-  opacity: 1;
-  visibility: visible;
-}
-
-.pricing-card:hover .pricing-front {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.pricing-back {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.pricing-card:hover .pricing-back {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-.pricing-back-inner {
+  gap: 18px;
   width: 100%;
-  height: 100%;
-  max-height: 100%;
-  min-height: 0;
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  padding: 20px;
-  box-sizing: border-box;
-  text-align: left;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
-.pricing-back-inner ul {
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.pricing-face ul {
-  list-style: none;
-  display: grid;
-  gap: 8px;
-  color: var(--text-muted);
-  padding: 0;
+.business-offer-title {
+  font-size: 1.5rem;
   margin: 0;
 }
 
-.pricing-card .price {
+.business-offer-price {
+  font-size: 1.15rem;
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.business-offer-price strong {
   font-size: 2rem;
-  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+  margin-top: 8px;
 }
 
-.pricing-card.featured .pricing-inner {
-  border: 1px solid rgba(123, 92, 255, 0.6);
-  box-shadow: 0 25px 60px rgba(123, 92, 255, 0.25);
+.payment-terms-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+  text-align: left;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.pricing-note {
-  margin-top: 24px;
+.payment-terms-list li {
+  padding-left: 1.25rem;
+  position: relative;
+  line-height: 1.5;
+}
+
+.payment-terms-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.payment-terms-notes {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.seo-add-on {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 1rem;
+}
+
+.selected-offer-field {
+  margin-bottom: 0;
+}
+
+.selected-offer {
+  margin: 0;
+  padding: 14px 18px;
+  background: rgba(123, 92, 255, 0.12);
+  border: 1px solid rgba(123, 92, 255, 0.35);
+  border-radius: 16px;
+  font-size: 1rem;
+}
+
+.certifications-block {
+  margin-top: 56px;
   text-align: center;
+}
+
+.certifications-heading {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+}
+
+.certifications-lead {
+  margin-bottom: 28px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.certifications-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.certification-card {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+
+.certification-card img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+}
+
+.delivery-factors {
+  list-style: none;
+  padding: 0;
+  margin: 12px auto 16px;
+  max-width: 420px;
+  text-align: left;
+  display: grid;
+  gap: 8px;
+}
+
+.delivery-factors li {
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.delivery-factors li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
 }
 
 .delivery-note,
@@ -606,6 +632,15 @@ h3:has(.section-title-emoji) {
 .tech {
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+.project-demo-note {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--text-muted);
+  opacity: 0.9;
 }
 
 .services-grid {
@@ -1076,8 +1111,8 @@ select:focus {
     gap: 20px;
   }
 
-  .pricing-grid {
-    gap: 20px;
+  .certifications-grid {
+    gap: 16px;
   }
 }
 
@@ -1169,12 +1204,13 @@ select:focus {
     gap: 20px;
   }
 
-  .pricing-grid {
-    gap: 18px;
+  .certifications-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
   }
 
-  .pricing-inner {
-    min-height: 260px;
+  .certifications-block {
+    margin-top: 40px;
   }
 
   .testimonial-card {

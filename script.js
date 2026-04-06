@@ -17,7 +17,9 @@ document.querySelectorAll(".nav a").forEach((link) => {
   link.addEventListener("click", () => nav.classList.remove("open"));
 });
 
-const fadeItems = document.querySelectorAll(".section, .about-image, .service-card, .edu-exp-card, .testimonial-card, .contact-form, .questions-form, .project-card");
+const fadeItems = document.querySelectorAll(
+  ".section, .about-image, .service-card, .edu-exp-card, .certification-card, .testimonial-card, .contact-form, .questions-form, .project-card"
+);
 const observer = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
@@ -63,7 +65,7 @@ setInterval(() => {
   updateCarousel();
 }, 6000);
 
-const TESTIMONIALS_STORAGE_KEY = "vertex-studio-real-reviews";
+const TESTIMONIALS_STORAGE_KEY = "derek-website-services-real-reviews";
 
 function getStoredReviews() {
   try {
@@ -225,7 +227,7 @@ if (messageSentModal) {
 
 // Rate limit: one submission (contact or questions) per 10 minutes per browser
 const FORM_COOLDOWN_MS = 10 * 60 * 1000;
-const FORM_LAST_SENT_KEY = "vertex-studio-last-form-sent";
+const FORM_LAST_SENT_KEY = "derek-website-services-last-form-sent";
 
 function getFormCooldownRemainingMs() {
   const last = localStorage.getItem(FORM_LAST_SENT_KEY);
