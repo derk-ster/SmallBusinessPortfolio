@@ -219,6 +219,25 @@ const EMAILJS_PUBLIC_KEY = "aaiWpriPi8RNMHKam";
 const EMAILJS_CONFIGURED =
   EMAILJS_TEMPLATE_ID !== "YOUR_TEMPLATE_ID" && EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY";
 
+/** EmailJS rejects with { status, text } — surface it so you can fix the dashboard. */
+function formatEmailJsError(err) {
+  if (err == null) return "";
+  const status = err.status;
+  const text = err.text || err.message || "";
+  let out = "";
+  if (status != null) out += `HTTP ${status}`;
+  if (text) out += (out ? " — " : "") + String(text).slice(0, 500);
+  return out || (typeof err === "string" ? err : err.toString?.() || "Unknown error");
+}
+
+if (typeof emailjs !== "undefined" && EMAILJS_CONFIGURED) {
+  try {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  } catch (e) {
+    console.warn("emailjs.init", e);
+  }
+}
+
 const messageSentModal = document.getElementById("message-sent-modal");
 const messageSentClose = document.querySelector(".message-sent-close");
 
@@ -317,6 +336,8 @@ function sendEmail(templateParams) {
     console.warn("Replace YOUR_TEMPLATE_ID and YOUR_PUBLIC_KEY in script.js. See EMAILJS_SETUP.md");
     return Promise.reject(new Error("Email not configured"));
   }
+  // Snippet you may see: emailjs.send("service_ui61fqn","template_g698amj") — same IDs as below,
+  // but that 2-arg form sends no field data. We pass templateParams (3rd arg) + publicKey (4th).
   return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, {
     publicKey: EMAILJS_PUBLIC_KEY,
   });
@@ -353,10 +374,16 @@ if (contactForm) {
       })
       .catch((err) => {
         console.error("Email send failed", err);
-        const msg = !EMAILJS_CONFIGURED
-          ? "Email is not set up. Add your Template ID and Public Key in script.js (see EMAILJS_SETUP.md)."
-          : "Something went wrong sending your message. Check the console for details or try again later.";
-        alert(msg);
+        if (!EMAILJS_CONFIGURED) {
+          alert("Email is not set up. Add your Template ID and Public Key in script.js (see EMAILJS_SETUP.md).");
+          return;
+        }
+        const detail = formatEmailJsError(err);
+        alert(
+          "Could not send your message.\n\n" +
+            (detail ? detail + "\n\n" : "") +
+            `In EmailJS: open the template, set Settings → the same email service as ${EMAILJS_SERVICE_ID}, and match variables (subject, from_name, from_email, message, type, package). Check Email History for the exact error.`
+        );
       });
   });
 }
@@ -391,10 +418,16 @@ if (questionsForm) {
       })
       .catch((err) => {
         console.error("Email send failed", err);
-        const msg = !EMAILJS_CONFIGURED
-          ? "Email is not set up. Add your Template ID and Public Key in script.js (see EMAILJS_SETUP.md)."
-          : "Something went wrong sending your message. Check the console for details or try again later.";
-        alert(msg);
+        if (!EMAILJS_CONFIGURED) {
+          alert("Email is not set up. Add your Template ID and Public Key in script.js (see EMAILJS_SETUP.md).");
+          return;
+        }
+        const detail = formatEmailJsError(err);
+        alert(
+          "Could not send your message.\n\n" +
+            (detail ? detail + "\n\n" : "") +
+            `In EmailJS: open the template, set Settings → the same email service as ${EMAILJS_SERVICE_ID}, and match variables (subject, from_name, from_email, message, type, package). Check Email History for the exact error.`
+        );
       });
   });
 }
