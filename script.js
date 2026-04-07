@@ -214,7 +214,7 @@ const NOTIFICATION_INBOX = "derek.ray.2104@gmail.com";
 
 // Replace these with your values from https://dashboard.emailjs.com (see EMAILJS_SETUP.md)
 const EMAILJS_SERVICE_ID = "service_ui61fqn";
-const EMAILJS_TEMPLATE_ID = "template_d7d4tl3";
+const EMAILJS_TEMPLATE_ID = "template_g698amj";
 const EMAILJS_PUBLIC_KEY = "aaiWpriPi8RNMHKam";
 const EMAILJS_CONFIGURED =
   EMAILJS_TEMPLATE_ID !== "YOUR_TEMPLATE_ID" && EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY";
