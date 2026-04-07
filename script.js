@@ -230,6 +230,16 @@ function formatEmailJsError(err) {
   return out || (typeof err === "string" ? err : err.toString?.() || "Unknown error");
 }
 
+/** Extra hint when API says account/key is wrong (common after “Refresh Keys”). */
+function emailJsAccountHelp(err) {
+  const status = err?.status;
+  const text = (err?.text || err?.message || "").toLowerCase();
+  if (status !== 404 && !text.includes("account not found") && !text.includes("public key")) return "";
+  return (
+    "\n\nAccount / key issue: In EmailJS go to Account and copy the Public Key again (after Refresh Keys, the old key stops working). Account → Security: turn OFF “Use Private Key” for browser-only sites. Never paste the Private Key into your website. Update EMAILJS_PUBLIC_KEY in script.js, commit, deploy, hard-refresh."
+  );
+}
+
 if (typeof emailjs !== "undefined" && EMAILJS_CONFIGURED) {
   try {
     emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
@@ -379,10 +389,14 @@ if (contactForm) {
           return;
         }
         const detail = formatEmailJsError(err);
+        const accountHint = emailJsAccountHelp(err);
         alert(
           "Could not send your message.\n\n" +
             (detail ? detail + "\n\n" : "") +
-            `In EmailJS: open the template, set Settings → the same email service as ${EMAILJS_SERVICE_ID}, and match variables (subject, from_name, from_email, message, type, package). Check Email History for the exact error.`
+            accountHint +
+            (accountHint
+              ? ""
+              : `\nIn EmailJS: template Settings → service ${EMAILJS_SERVICE_ID}; variables: subject, from_name, from_email, message, type, package. Check Email History.`)
         );
       });
   });
@@ -423,10 +437,14 @@ if (questionsForm) {
           return;
         }
         const detail = formatEmailJsError(err);
+        const accountHint = emailJsAccountHelp(err);
         alert(
           "Could not send your message.\n\n" +
             (detail ? detail + "\n\n" : "") +
-            `In EmailJS: open the template, set Settings → the same email service as ${EMAILJS_SERVICE_ID}, and match variables (subject, from_name, from_email, message, type, package). Check Email History for the exact error.`
+            accountHint +
+            (accountHint
+              ? ""
+              : `\nIn EmailJS: template Settings → service ${EMAILJS_SERVICE_ID}; variables: subject, from_name, from_email, message, type, package. Check Email History.`)
         );
       });
   });

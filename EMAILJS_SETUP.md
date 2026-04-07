@@ -53,4 +53,10 @@ In EmailJS, go to **Email Services** and make sure the service (e.g. Gmail) link
   - Confirm the **email service** (e.g. Gmail) for **service_ui61fqn** is connected and working in the EmailJS dashboard.
 
 - **Success modal but no email received**  
-  That bug is fixed: the success message now only appears when the send actually succeeds. If you still see it with no email, check your spam folder and the EmailJS dashboard **Email History** to see if the send was attempted or failed.
+  That bug is fixed: the success message only appears when the send actually succeeds. If you still see it with no email, check spam and EmailJS **Email History**.
+
+- **HTTP 404 — “Account not found”**  
+  The **Public Key** in **script.js** is invalid for EmailJS (typo, or you used **Refresh Keys** so the old key died). Copy the **current** Public Key from **Account**, update `EMAILJS_PUBLIC_KEY`, redeploy, hard-refresh. **Account → Security:** turn **off** “Use Private Key” for browser-only sites. Never put the **Private Key** in your site.
+
+- **HTTP 400 — “The service ID not found”**  
+  **Public Key** and **Service ID** must be from the **same** logged-in EmailJS account.
