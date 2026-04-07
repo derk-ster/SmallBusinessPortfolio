@@ -1,12 +1,12 @@
 # EmailJS setup (2 steps)
 
-Forms use **EmailJS** so messages go to **derek.ray.21041@gmail.com**. Service ID is already set. You only need to add your **Template ID** and **Public Key**.
+Forms use **EmailJS** so messages go to your inbox. The site passes **`to_email`** (see `NOTIFICATION_INBOX` in `script.js`, currently **derek.ray.2104@gmail.com**). Service ID is already set. You only need to add your **Template ID** and **Public Key**, and match the template **To Email** (see below).
 
 ## 1. Create one email template
 
 1. In EmailJS, go to **Email Templates** → **Create New Template**.
 2. Set:
-   - **To Email:** `derek.ray.21041@gmail.com`
+   - **To Email:** `{{to_email}}` (recommended — matches `NOTIFICATION_INBOX` in `script.js`), **or** a static address such as `derek.ray.2104@gmail.com`
    - **Subject:** `{{subject}}`
    - **Reply To:** `{{from_email}}` — **required** so when you click Reply in Gmail, your reply goes to the client who filled the form (not back to yourself).
    - **Content (Body):** use these variables (copy-paste):
@@ -49,7 +49,7 @@ In EmailJS, go to **Email Services** and make sure the service (e.g. Gmail) link
 
 - **"Something went wrong" after submitting**  
   - Open the browser **Developer Console** (F12 → Console) and check the red error message.  
-  - In EmailJS: confirm the **template variables** match exactly: `{{type}}`, `{{package}}`, `{{from_name}}`, `{{from_email}}`, `{{subject}}`, `{{message}}`.  
+  - In EmailJS: confirm the **template variables** match: `{{type}}`, `{{package}}`, `{{from_name}}`, `{{from_email}}`, `{{subject}}`, `{{message}}`, and if you use dynamic recipient, **`{{to_email}}`** in the **To Email** field.  
   - Confirm the **email service** (e.g. Gmail) for **service_wcr1i89** is connected and working in the EmailJS dashboard.
 
 - **Success modal but no email received**  

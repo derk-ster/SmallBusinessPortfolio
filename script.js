@@ -95,6 +95,14 @@ function starsHtml(rating) {
   return full + empty;
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function renderRealReviews() {
   const list = document.querySelector(".real-reviews-list");
   const empty = document.querySelector(".real-reviews-empty");
@@ -105,11 +113,13 @@ function renderRealReviews() {
     const card = document.createElement("article");
     card.className = "glass-card real-review-card";
     const dateStr = r.date ? new Date(r.date).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "";
+    const safeName = escapeHtml(r.name);
+    const safeMessage = escapeHtml(r.message);
     card.innerHTML = `
       <div class="stars" aria-label="${r.rating} out of 5 stars">${starsHtml(r.rating)}</div>
-      <p>"${r.message.replace(/"/g, "&quot;")}"</p>
-      <h4>${r.name.replace(/</g, "&lt;")}</h4>
-      <span class="review-meta">${dateStr}</span>
+      <p>"${safeMessage}"</p>
+      <h4>${safeName}</h4>
+      <span class="review-meta">${escapeHtml(dateStr)}</span>
     `;
     list.appendChild(card);
   });
@@ -146,9 +156,16 @@ if (reviewForm) {
     e.preventDefault();
     const name = document.getElementById("review-name").value.trim();
     const email = document.getElementById("review-email").value.trim();
-    const rating = parseInt(ratingInput.value, 10) || 0;
+    const rating = parseInt(ratingInput?.value, 10) || 0;
     const message = document.getElementById("review-message").value.trim();
-    if (!name || !message || rating < 1 || rating > 5) return;
+    if (!name || !message) {
+      alert("Please enter your name and review text.");
+      return;
+    }
+    if (rating < 1 || rating > 5) {
+      alert("Please tap the stars to choose a rating from 1 to 5.");
+      return;
+    }
     saveReview({ name, email, rating, message });
     renderRealReviews();
     reviewForm.reset();
@@ -191,6 +208,9 @@ if (portraitLightbox) {
     }
   });
 }
+
+// Inbound mail: set your EmailJS template "To Email" to this address, OR use {{to_email}} so it comes from the param below.
+const NOTIFICATION_INBOX = "derek.ray.2104@gmail.com";
 
 // Replace these with your values from https://dashboard.emailjs.com (see EMAILJS_SETUP.md)
 const EMAILJS_SERVICE_ID = "service_wcr1i89";
@@ -324,6 +344,7 @@ if (contactForm) {
       from_email: email,
       subject: emailSubject,
       message: message,
+      to_email: NOTIFICATION_INBOX,
     };
     sendEmail(templateParams)
       .then(() => {
@@ -361,6 +382,7 @@ if (questionsForm) {
       from_email: email,
       subject: emailSubject,
       message: message,
+      to_email: NOTIFICATION_INBOX,
     };
     sendEmail(templateParams)
       .then(() => {
