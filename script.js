@@ -18,7 +18,7 @@ document.querySelectorAll(".nav a").forEach((link) => {
 });
 
 const fadeItems = document.querySelectorAll(
-  ".section, .about-image, .service-card, .edu-exp-card, .certification-card, .testimonial-card, .contact-form, .questions-form, .project-card"
+  ".section, .about-image, .service-card, .edu-exp-card, .certification-card, .contact-form, .questions-form, .project-card, .cta-strip, .real-review-card"
 );
 const observer = new IntersectionObserver(
   (entries) => {
@@ -44,26 +44,29 @@ const nextBtn = document.querySelector(".carousel-btn.next");
 let carouselIndex = 0;
 
 const updateCarousel = () => {
+  if (!carouselTrack || !carouselCards.length) return;
   const cardWidth = carouselCards[0].offsetWidth + 24;
   carouselTrack.style.transform = `translateX(-${carouselIndex * cardWidth}px)`;
 };
 
-nextBtn.addEventListener("click", () => {
-  carouselIndex = (carouselIndex + 1) % carouselCards.length;
-  updateCarousel();
-});
+if (carouselTrack && carouselCards.length && prevBtn && nextBtn) {
+  nextBtn.addEventListener("click", () => {
+    carouselIndex = (carouselIndex + 1) % carouselCards.length;
+    updateCarousel();
+  });
 
-prevBtn.addEventListener("click", () => {
-  carouselIndex = (carouselIndex - 1 + carouselCards.length) % carouselCards.length;
-  updateCarousel();
-});
+  prevBtn.addEventListener("click", () => {
+    carouselIndex = (carouselIndex - 1 + carouselCards.length) % carouselCards.length;
+    updateCarousel();
+  });
 
-window.addEventListener("resize", updateCarousel);
+  window.addEventListener("resize", updateCarousel);
 
-setInterval(() => {
-  carouselIndex = (carouselIndex + 1) % carouselCards.length;
-  updateCarousel();
-}, 6000);
+  window.setInterval(() => {
+    carouselIndex = (carouselIndex + 1) % carouselCards.length;
+    updateCarousel();
+  }, 6000);
+}
 
 const TESTIMONIALS_STORAGE_KEY = "derek-website-services-real-reviews";
 
@@ -209,6 +212,143 @@ if (portraitLightbox) {
   });
 }
 
+const MAX_PASTED_IMAGES = 5;
+const pastedStores = { contact: [], questions: [] };
+let pastedImageIdSeq = 0;
+
+function insertAtCursor(textarea, text) {
+  if (!textarea || !text) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(end);
+  const pos = start + text.length;
+  textarea.selectionStart = textarea.selectionEnd = pos;
+}
+
+function resizeImageFileToJpegDataUrl(file, maxDim = 1600, quality = 0.86) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      try {
+        URL.revokeObjectURL(objectUrl);
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        if (w < 1 || h < 1) {
+          reject(new Error("Invalid image"));
+          return;
+        }
+        const scale = Math.min(1, maxDim / Math.max(w, h));
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("No canvas"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Could not read image"));
+    };
+    img.src = objectUrl;
+  });
+}
+
+function renderPastedPreview(formKey, previewEl) {
+  if (!previewEl) return;
+  const list = pastedStores[formKey];
+  previewEl.innerHTML = "";
+  list.forEach((item) => {
+    const chip = document.createElement("div");
+    chip.className = "pasted-image-chip";
+    const imgEl = document.createElement("img");
+    imgEl.src = item.dataUrl;
+    imgEl.alt = "Pasted image";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "pasted-image-remove";
+    btn.setAttribute("aria-label", "Remove pasted image");
+    btn.textContent = "\u00d7";
+    btn.addEventListener("click", () => {
+      pastedStores[formKey] = pastedStores[formKey].filter((x) => x.id !== item.id);
+      renderPastedPreview(formKey, previewEl);
+    });
+    chip.appendChild(imgEl);
+    chip.appendChild(btn);
+    previewEl.appendChild(chip);
+  });
+}
+
+async function addPastedImageFile(formKey, previewEl, file) {
+  const list = pastedStores[formKey];
+  if (list.length >= MAX_PASTED_IMAGES) {
+    alert(`You can paste up to ${MAX_PASTED_IMAGES} images. Remove one to add another.`);
+    return;
+  }
+  try {
+    const dataUrl = await resizeImageFileToJpegDataUrl(file);
+    pastedImageIdSeq += 1;
+    list.push({
+      id: pastedImageIdSeq,
+      dataUrl,
+      name: file.name || `pasted-${pastedImageIdSeq}.jpg`,
+    });
+    renderPastedPreview(formKey, previewEl);
+  } catch {
+    alert("Could not use that image. Try a PNG or JPEG screenshot.");
+  }
+}
+
+function setupMessagePaste(textareaId, formKey, previewId) {
+  const textarea = document.getElementById(textareaId);
+  const previewEl = document.getElementById(previewId);
+  if (!textarea || !previewEl) return;
+  textarea.addEventListener("paste", (e) => {
+    const cd = e.clipboardData;
+    if (!cd || !cd.items || !cd.items.length) return;
+    const plain = cd.getData("text/plain") || "";
+    const imageItems = Array.from(cd.items).filter(
+      (it) => it.kind === "file" && it.type.startsWith("image/")
+    );
+    if (!imageItems.length) return;
+    e.preventDefault();
+    void (async () => {
+      for (const item of imageItems) {
+        const f = item.getAsFile();
+        if (f) await addPastedImageFile(formKey, previewEl, f);
+      }
+      if (plain) insertAtCursor(textarea, plain);
+    })();
+  });
+}
+
+function buildPastedImageTemplateParams(formKey) {
+  const list = pastedStores[formKey];
+  const out = {};
+  list.forEach((item, i) => {
+    out[`pasted_image_${i + 1}`] = item.dataUrl;
+  });
+  return out;
+}
+
+function clearPastedImages(formKey, previewId) {
+  pastedStores[formKey].length = 0;
+  const previewEl = document.getElementById(previewId);
+  if (previewEl) previewEl.innerHTML = "";
+}
+
+setupMessagePaste("message", "contact", "contact-pasted-preview");
+setupMessagePaste("q-message", "questions", "questions-pasted-preview");
+
 // Inbound mail: set your EmailJS template "To Email" to this address, OR use {{to_email}} so it comes from the param below.
 const NOTIFICATION_INBOX = "derek.ray.2104@gmail.com";
 
@@ -226,7 +366,7 @@ function formatEmailJsError(err) {
   const text = err.text || err.message || "";
   let out = "";
   if (status != null) out += `HTTP ${status}`;
-  if (text) out += (out ? " — " : "") + String(text).slice(0, 500);
+  if (text) out += (out ? ". " : "") + String(text).slice(0, 500);
   return out || (typeof err === "string" ? err : err.toString?.() || "Unknown error");
 }
 
@@ -367,6 +507,11 @@ if (contactForm) {
     const email = document.getElementById("email")?.value?.trim() || "";
     const subject = document.getElementById("subject")?.value?.trim() || "";
     const message = document.getElementById("message")?.value?.trim() || "";
+    const pasted = pastedStores.contact;
+    if (!message && !pasted.length) {
+      alert("Please enter a message or paste at least one image.");
+      return;
+    }
     const emailSubject = "[PURCHASE] " + (packageVal ? packageVal + " - " : "") + subject;
     const templateParams = {
       type: "Purchase",
@@ -376,10 +521,13 @@ if (contactForm) {
       subject: emailSubject,
       message: message,
       to_email: NOTIFICATION_INBOX,
+      ...buildPastedImageTemplateParams("contact"),
     };
     sendEmail(templateParams)
       .then(() => {
         setFormCooldown();
+        clearPastedImages("contact", "contact-pasted-preview");
+        contactForm.reset();
         showMessageSentModal();
       })
       .catch((err) => {
@@ -415,6 +563,11 @@ if (questionsForm) {
     const email = document.getElementById("q-email")?.value?.trim() || "";
     const subject = document.getElementById("q-subject")?.value?.trim() || "";
     const message = document.getElementById("q-message")?.value?.trim() || "";
+    const pastedQ = pastedStores.questions;
+    if (!message && !pastedQ.length) {
+      alert("Please enter a message or paste at least one image.");
+      return;
+    }
     const emailSubject = "[QUESTION] " + subject;
     const templateParams = {
       type: "Question",
@@ -424,10 +577,13 @@ if (questionsForm) {
       subject: emailSubject,
       message: message,
       to_email: NOTIFICATION_INBOX,
+      ...buildPastedImageTemplateParams("questions"),
     };
     sendEmail(templateParams)
       .then(() => {
         setFormCooldown();
+        clearPastedImages("questions", "questions-pasted-preview");
+        questionsForm.reset();
         showMessageSentModal();
       })
       .catch((err) => {

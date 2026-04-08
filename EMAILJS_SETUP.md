@@ -36,6 +36,15 @@ Message:
 3. Replace `YOUR_PUBLIC_KEY` with your Public Key (keep the quotes).
 4. Save. Contact and Questions forms will then send real emails to your inbox.
 
+## Optional: Pasted images (contact and questions forms)
+
+Visitors can paste screenshots into the message box. The site sends them as template parameters **`pasted_image_1`**, **`pasted_image_2`**, … up to **`pasted_image_5`** (JPEG data URLs, same style as the EmailJS canvas example).
+
+1. In your template, open the **Attachments** tab.
+2. For each slot you want to support, add **Variable Attachment**.
+3. Set **Parameter name** to `pasted_image_1` (then `pasted_image_2`, etc.). **Filename** can be `pasted-1.jpg`. **Content type** `JPEG` (or leave default if offered).
+4. Save. If these are not added, EmailJS may ignore the extra parameters and the images will not arrive as attachments.
+
 ## 4. Connect your email service (required)
 
 In EmailJS, go to **Email Services** and make sure the service (e.g. Gmail) linked to **service_ui61fqn** is **connected** and verified. If it isn’t, emails will fail even with the correct Template ID and Public Key.
