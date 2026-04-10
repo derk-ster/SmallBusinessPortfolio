@@ -7,6 +7,9 @@
   --accent-soft: rgba(123, 92, 255, 0.2);
   --glass: rgba(255, 255, 255, 0.08);
   --shadow: 0 20px 50px rgba(12, 16, 34, 0.35);
+  /* Scrollbar: track = former thumb tint; thumb ≈ half lightness of #cfe8ff */
+  --scrollbar-track: #cfe8ff;
+  --scrollbar-thumb: #3d8ec9;
 }
 
 * {
@@ -17,35 +20,37 @@
 
 html {
   scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: #c5e3fc #eef2f7;
+  scrollbar-width: auto;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 20px;
+  height: 20px;
 }
 
 html::-webkit-scrollbar-track,
 body::-webkit-scrollbar-track {
-  background: #eef2f7;
+  background: var(--scrollbar-track);
 }
 
 html::-webkit-scrollbar-thumb,
 body::-webkit-scrollbar-thumb {
-  background: #cfe8ff;
+  background: var(--scrollbar-thumb);
   border-radius: 0;
 }
 
 html::-webkit-scrollbar-thumb:hover,
-body::-webkit-scrollbar-thumb:hover {
-  background: #b8daf5;
+body::-webkit-scrollbar-thumb:hover,
+html::-webkit-scrollbar-thumb:active,
+body::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb);
 }
 
 html::-webkit-scrollbar-corner,
 body::-webkit-scrollbar-corner {
-  background: #eef2f7;
+  background: var(--scrollbar-track);
 }
 
 body {
@@ -73,30 +78,44 @@ a {
 
 main {
   position: relative;
+  z-index: 0;
 }
 
-/* Dot pattern on navy area (About Me and below), not on hero */
-main::after {
-  content: "";
+/*
+ * DOM dots sit behind section content (like the old ::after) so they only read as page
+ * texture. Opaque panels (.glass-card, forms, etc.) block them from showing through.
+ */
+main > .dot-field {
   position: absolute;
   top: 90vh;
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: radial-gradient(
-    circle at center,
-    rgba(255, 255, 255, 0.12) 1px,
-    transparent 1px
-  );
-  background-size: 28px 28px;
+  width: 100%;
+  height: auto;
   pointer-events: none;
   z-index: -1;
 }
 
-/* Stack content above the dot pattern layer */
-main > * {
+main > .dot-field .dot-field__dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: rgba(244, 245, 251, 0.12);
+  transform-origin: center center;
+}
+
+/* Sections and hero stack above the dot field (hero taller when content grows) */
+main > *:not(.dot-field) {
   position: relative;
   z-index: 1;
+}
+
+main > #home {
+  z-index: 3;
 }
 
 .section {
@@ -256,7 +275,7 @@ main > * {
 .selected-offer {
   margin: 0;
   padding: 14px 18px;
-  background: rgba(123, 92, 255, 0.12);
+  background: #16182e;
   border: 1px solid rgba(123, 92, 255, 0.35);
   border-radius: 16px;
   font-size: 1rem;
@@ -295,10 +314,27 @@ main > * {
   min-height: 240px;
 }
 
-.certification-card img {
+.certification-trigger {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.certification-trigger img {
   width: 100%;
   max-height: 280px;
   object-fit: contain;
+  display: block;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.certification-trigger:hover img {
+  transform: scale(1.02);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
 }
 
 .delivery-factors {
@@ -381,9 +417,8 @@ h3:has(.section-title-emoji) {
 }
 
 .glass-card {
-  background: rgba(12, 16, 34, 0.85);
+  background: var(--bg-dark);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(18px);
   border-radius: 24px;
   padding: 28px;
   box-shadow: var(--shadow);
@@ -760,7 +795,7 @@ h3:has(.section-title-emoji) {
 
 .service-card:hover {
   transform: translateY(-8px) scale(1.03);
-  background: rgba(123, 92, 255, 0.18);
+  background: #1a1733;
   border-color: rgba(123, 92, 255, 0.4);
 }
 
@@ -873,7 +908,7 @@ h3:has(.section-title-emoji) {
   padding: 10px 20px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(12, 16, 34, 0.9);
+  background: var(--bg-dark);
   color: var(--text-primary);
   font-weight: 600;
   cursor: pointer;
@@ -883,12 +918,12 @@ h3:has(.section-title-emoji) {
 }
 
 .testimonial-tab:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: #161a32;
   border-color: rgba(255, 255, 255, 0.3);
 }
 
 .testimonial-tab.active {
-  background: rgba(123, 92, 255, 0.25);
+  background: #221c40;
   border-color: rgba(123, 92, 255, 0.5);
 }
 
@@ -919,7 +954,8 @@ h3:has(.section-title-emoji) {
   padding: 24px;
   display: grid;
   gap: 10px;
-  background: rgba(12, 16, 34, 0.85);
+  background: var(--bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   position: relative;
   z-index: 1;
@@ -981,6 +1017,11 @@ h3:has(.section-title-emoji) {
   margin-top: 20px;
   position: relative;
   z-index: 1;
+  background: var(--bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: var(--shadow);
 }
 
 .questions-form {
@@ -1105,7 +1146,7 @@ h3:has(.section-title-emoji) {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(12, 16, 34, 0.6);
+  background: var(--bg-light);
 }
 
 .pasted-image-chip img {
@@ -1141,7 +1182,7 @@ h3:has(.section-title-emoji) {
 input,
 textarea,
 select {
-  background: rgba(12, 16, 34, 0.95);
+  background: var(--bg-light);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 16px;
   padding: 12px 16px;
@@ -1197,7 +1238,26 @@ select:focus {
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
+    scrollbar-width: auto;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  .site-header::-webkit-scrollbar {
+    height: 20px;
+  }
+
+  .site-header::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  .site-header::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 0;
+  }
+
+  .site-header::-webkit-scrollbar-thumb:hover,
+  .site-header::-webkit-scrollbar-thumb:active {
+    background: var(--scrollbar-thumb);
   }
 
   .site-header .container {

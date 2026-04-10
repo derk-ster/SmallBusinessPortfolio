@@ -180,34 +180,55 @@ if (reviewForm) {
 
 renderRealReviews();
 
-const portraitTrigger = document.querySelector(".portrait-trigger");
 const portraitLightbox = document.getElementById("portrait-lightbox");
 const portraitLightboxImg = portraitLightbox?.querySelector("img");
 const portraitLightboxClose = portraitLightbox?.querySelector(".portrait-lightbox-close");
+const portraitTrigger = document.querySelector(".portrait-trigger");
+
+function openImageLightbox(src, alt) {
+  if (!portraitLightbox || !portraitLightboxImg || !src) return;
+  portraitLightboxImg.src = src;
+  portraitLightboxImg.alt = alt || "";
+  portraitLightbox.classList.add("active");
+  portraitLightbox.setAttribute("aria-hidden", "false");
+}
+
+function closeImageLightbox() {
+  if (!portraitLightbox || !portraitLightboxImg) return;
+  portraitLightbox.classList.remove("active");
+  portraitLightbox.setAttribute("aria-hidden", "true");
+  portraitLightboxImg.src = "";
+  portraitLightboxImg.alt = "";
+}
 
 if (portraitTrigger && portraitLightbox && portraitLightboxImg) {
-  const portraitSrc = portraitTrigger.querySelector("img")?.src;
+  const portraitImg = portraitTrigger.querySelector("img");
   portraitTrigger.addEventListener("click", () => {
-    if (portraitSrc) portraitLightboxImg.src = portraitSrc;
-    portraitLightbox.classList.add("active");
-    portraitLightbox.setAttribute("aria-hidden", "false");
+    if (portraitImg?.src) {
+      openImageLightbox(portraitImg.src, "Portrait of Derek (larger)");
+    }
   });
 }
 
+document.querySelectorAll(".certification-trigger").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const img = btn.querySelector("img");
+    if (img?.src) {
+      openImageLightbox(img.src, `${img.alt || "Certification"} (larger)`);
+    }
+  });
+});
+
 if (portraitLightboxClose) {
   portraitLightboxClose.addEventListener("click", () => {
-    portraitLightbox?.classList.remove("active");
-    portraitLightbox?.setAttribute("aria-hidden", "true");
-    portraitLightboxImg && (portraitLightboxImg.src = "");
+    closeImageLightbox();
   });
 }
 
 if (portraitLightbox) {
   portraitLightbox.addEventListener("click", (e) => {
     if (e.target === portraitLightbox) {
-      portraitLightbox.classList.remove("active");
-      portraitLightbox.setAttribute("aria-hidden", "true");
-      portraitLightboxImg && (portraitLightboxImg.src = "");
+      closeImageLightbox();
     }
   });
 }
@@ -605,3 +626,230 @@ if (questionsForm) {
       });
   });
 }
+
+(function initInteractiveDotField() {
+  const container = document.querySelector("main > .dot-field");
+  if (!container) return;
+
+  const hero = document.querySelector("#home");
+
+  const gap = 28;
+  const baseRadius = 1.25;
+  const maxRadius = 5.25;
+  const influenceRadius = 150;
+  const lerp = 0.14;
+
+  /** First viewport entry: sine bump over INTRO_MS; peak scales by introPeakAmp (random per dot) */
+  const INTRO_MS = 1000;
+  const INTRO_VIEW_MARGIN = 72;
+  const INTRO_PEAK_MIN = 0.28;
+  const INTRO_PEAK_MAX = 1;
+
+  /** Only dots in the bottom this many grid rows (from viewport bottom) may run intro/grab */
+  const INTRO_ANIM_ROWS_FROM_BOTTOM = 12;
+
+  /** “Grab” pulse on dots above when a dot below starts intro (already-finished dots only) */
+  const GRAB_MS = 450;
+  const GRAB_LIFT_PX = 3.2;
+  const GRAB_AMP_MIN = 0.18;
+  const GRAB_AMP_MAX = 0.52;
+  const GRAB_CHANCE_ROW_ABOVE = 0.52;
+  const GRAB_CHANCE_ROW_ABOVE2 = 0.22;
+  const GRAB_ROW2_DELAY_MS = 78;
+
+  /** @type {Map<string, number>} */
+  let indexByCoord = new Map();
+
+  /** @type {{ x: number; y: number }[]} */
+  let positions = [];
+  /** @type {HTMLElement[]} */
+  let dotEls = [];
+  /** @type {number[]} */
+  let radii = [];
+  /** @type {boolean[]} */
+  let introDone = [];
+  /** @type {(number | null)[]} */
+  let introStartAt = [];
+  /** @type {number[]} — multiplier on (maxRadius − baseRadius) at intro peak */
+  let introPeakAmp = [];
+  /** @type {(number | null)[]} */
+  let grabStartAt = [];
+  /** @type {number[]} */
+  let grabPeakAmp = [];
+
+  function scheduleGrabPulseAbove(x, y, now, rect, bandTopCy) {
+    const cyAtDotY = (yy) => rect.top + yy;
+    const tryRow = (rowsUp, chance, delayMs) => {
+      if (Math.random() >= chance) return;
+      const yy = y - rowsUp * gap;
+      if (yy < gap / 2) return;
+      if (cyAtDotY(yy) < bandTopCy) return;
+      const j = indexByCoord.get(`${x},${yy}`);
+      if (j === undefined) return;
+      if (!introDone[j]) return;
+      if (grabStartAt[j] !== null) return;
+      grabStartAt[j] = now + delayMs;
+      grabPeakAmp[j] = GRAB_AMP_MIN + Math.random() * (GRAB_AMP_MAX - GRAB_AMP_MIN);
+    };
+    tryRow(1, GRAB_CHANCE_ROW_ABOVE, 0);
+    tryRow(2, GRAB_CHANCE_ROW_ABOVE2, GRAB_ROW2_DELAY_MS);
+  }
+
+  function syncTopToHero() {
+    if (hero) {
+      container.style.top = `${hero.offsetHeight}px`;
+    }
+  }
+
+  function rebuild() {
+    syncTopToHero();
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    container.replaceChildren();
+    positions = [];
+    dotEls = [];
+    radii = [];
+    introDone = [];
+    introStartAt = [];
+    introPeakAmp = [];
+    grabStartAt = [];
+    grabPeakAmp = [];
+    indexByCoord = new Map();
+    if (w < 1 || h < 1) return;
+
+    const peakSpan = INTRO_PEAK_MAX - INTRO_PEAK_MIN;
+    const frag = document.createDocumentFragment();
+    for (let y = gap / 2; y < h; y += gap) {
+      for (let x = gap / 2; x < w; x += gap) {
+        const el = document.createElement("span");
+        el.className = "dot-field__dot";
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        frag.appendChild(el);
+        positions.push({ x, y });
+        dotEls.push(el);
+        radii.push(baseRadius);
+        introDone.push(false);
+        introStartAt.push(null);
+        introPeakAmp.push(INTRO_PEAK_MIN + Math.random() * peakSpan);
+        grabStartAt.push(null);
+        grabPeakAmp.push(0);
+      }
+    }
+    container.appendChild(frag);
+    positions.forEach((pos, idx) => {
+      indexByCoord.set(`${pos.x},${pos.y}`, idx);
+    });
+  }
+
+  let mouseClientX = -1e6;
+  let mouseClientY = -1e6;
+
+  document.addEventListener("mousemove", (e) => {
+    mouseClientX = e.clientX;
+    mouseClientY = e.clientY;
+  });
+
+  document.addEventListener(
+    "mouseleave",
+    () => {
+      mouseClientX = -1e6;
+      mouseClientY = -1e6;
+    },
+    true
+  );
+
+  function draw(ts) {
+    const rect = container.getBoundingClientRect();
+
+    if (dotEls.length === 0) {
+      requestAnimationFrame(draw);
+      return;
+    }
+
+    const mx = mouseClientX - rect.left;
+    const my = mouseClientY - rect.top;
+    const t = ts * 0.001;
+    const now = performance.now();
+    const vh = window.innerHeight;
+    const vw = window.innerWidth;
+    const vm = INTRO_VIEW_MARGIN;
+    const animBandTopCy = vh - INTRO_ANIM_ROWS_FROM_BOTTOM * gap;
+
+    for (let i = 0; i < dotEls.length; i++) {
+      const { x, y } = positions[i];
+      const cx = rect.left + x;
+      const cy = rect.top + y;
+      const inView = cy >= -vm && cy <= vh + vm && cx >= -vm && cx <= vw + vm;
+      const inAnimBand = cy >= animBandTopCy;
+
+      if (!introDone[i] && inView && introStartAt[i] === null && inAnimBand) {
+        introStartAt[i] = now;
+        scheduleGrabPulseAbove(x, y, now, rect, animBandTopCy);
+      }
+      if (!introDone[i] && inView && introStartAt[i] === null && cy < animBandTopCy) {
+        introDone[i] = true;
+        grabStartAt[i] = null;
+      }
+
+      let grabTy = 0;
+
+      if (!introDone[i] && introStartAt[i] !== null) {
+        const u = Math.min(1, (now - introStartAt[i]) / INTRO_MS);
+        const amp = introPeakAmp[i];
+        radii[i] = baseRadius + (maxRadius - baseRadius) * amp * Math.sin(u * Math.PI);
+        if (u >= 1) {
+          introDone[i] = true;
+          introStartAt[i] = null;
+          radii[i] = baseRadius;
+        }
+      } else {
+        let grabRadiusAdd = 0;
+        const gs = grabStartAt[i];
+        if (gs !== null && now >= gs) {
+          const gu = (now - gs) / GRAB_MS;
+          if (gu >= 1) {
+            grabStartAt[i] = null;
+          } else {
+            const gsin = Math.sin(gu * Math.PI);
+            grabRadiusAdd = (maxRadius - baseRadius) * grabPeakAmp[i] * gsin;
+            grabTy = -GRAB_LIFT_PX * gsin;
+          }
+        }
+
+        const dist = Math.hypot(x - mx, y - my);
+        const raw = Math.max(0, 1 - dist / influenceRadius);
+        const smooth = raw * raw * (3 - 2 * raw);
+        const pulse = 1 + 0.2 * Math.sin(t * 3.2 + x * 0.07 + y * 0.07) * smooth;
+        const target = (baseRadius + (maxRadius - baseRadius) * smooth) * pulse + grabRadiusAdd;
+        radii[i] += (target - radii[i]) * lerp;
+      }
+
+      const r = radii[i];
+      const scale = r / baseRadius;
+      const glow = (r - baseRadius) / (maxRadius - baseRadius);
+      const a = 0.1 + Math.min(1, Math.max(0, glow)) * 0.14;
+      const el = dotEls[i];
+      el.style.transform = `translate(-50%, calc(-50% + ${grabTy}px)) scale(${scale})`;
+      el.style.background = `rgba(244, 245, 251, ${a})`;
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  const ro = new ResizeObserver(() => {
+    rebuild();
+  });
+  ro.observe(container);
+  if (hero) {
+    new ResizeObserver(() => {
+      rebuild();
+    }).observe(hero);
+  }
+  window.addEventListener("resize", () => {
+    rebuild();
+  });
+
+  rebuild();
+  requestAnimationFrame(draw);
+})();
