@@ -631,6 +631,12 @@ if (questionsForm) {
   const container = document.querySelector("main > .dot-field");
   if (!container) return;
 
+  const canvas = document.createElement("canvas");
+  canvas.className = "dot-field__canvas";
+  canvas.setAttribute("aria-hidden", "true");
+  container.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+
   const hero = document.querySelector("#home");
 
   const gap = 28;
@@ -660,10 +666,11 @@ if (questionsForm) {
   /** @type {Map<string, number>} */
   let indexByCoord = new Map();
 
+  /** Survives rebuild() so mobile resize / URL bar doesn’t replay intros */
+  let introCompletedKeys = new Set();
+
   /** @type {{ x: number; y: number }[]} */
   let positions = [];
-  /** @type {HTMLElement[]} */
-  let dotEls = [];
   /** @type {number[]} */
   let radii = [];
   /** @type {boolean[]} */
@@ -701,13 +708,29 @@ if (questionsForm) {
     }
   }
 
-  function rebuild() {
-    syncTopToHero();
+  function resizeCanvas() {
     const w = container.clientWidth;
     const h = container.clientHeight;
-    container.replaceChildren();
+    if (w < 1 || h < 1) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function rebuild() {
+    syncTopToHero();
+    for (let idx = 0; idx < positions.length; idx++) {
+      if (introDone[idx]) {
+        introCompletedKeys.add(`${positions[idx].x},${positions[idx].y}`);
+      }
+    }
+
+    const w = container.clientWidth;
+    const h = container.clientHeight;
     positions = [];
-    dotEls = [];
     radii = [];
     introDone = [];
     introStartAt = [];
@@ -717,29 +740,27 @@ if (questionsForm) {
     indexByCoord = new Map();
     if (w < 1 || h < 1) return;
 
+    resizeCanvas();
+
     const peakSpan = INTRO_PEAK_MAX - INTRO_PEAK_MIN;
-    const frag = document.createDocumentFragment();
     for (let y = gap / 2; y < h; y += gap) {
       for (let x = gap / 2; x < w; x += gap) {
-        const el = document.createElement("span");
-        el.className = "dot-field__dot";
-        el.style.left = `${x}px`;
-        el.style.top = `${y}px`;
-        frag.appendChild(el);
+        const key = `${x},${y}`;
         positions.push({ x, y });
-        dotEls.push(el);
         radii.push(baseRadius);
-        introDone.push(false);
+        introDone.push(introCompletedKeys.has(key));
         introStartAt.push(null);
         introPeakAmp.push(INTRO_PEAK_MIN + Math.random() * peakSpan);
         grabStartAt.push(null);
         grabPeakAmp.push(0);
       }
     }
-    container.appendChild(frag);
     positions.forEach((pos, idx) => {
       indexByCoord.set(`${pos.x},${pos.y}`, idx);
     });
+
+    const stillPresent = new Set(positions.map((p) => `${p.x},${p.y}`));
+    introCompletedKeys = new Set([...introCompletedKeys].filter((k) => stillPresent.has(k)));
   }
 
   let mouseClientX = -1e6;
@@ -761,11 +782,15 @@ if (questionsForm) {
 
   function draw(ts) {
     const rect = container.getBoundingClientRect();
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
 
-    if (dotEls.length === 0) {
+    if (positions.length === 0 || cw < 1 || ch < 1) {
       requestAnimationFrame(draw);
       return;
     }
+
+    ctx.clearRect(0, 0, cw, ch);
 
     const mx = mouseClientX - rect.left;
     const my = mouseClientY - rect.top;
@@ -776,7 +801,7 @@ if (questionsForm) {
     const vm = INTRO_VIEW_MARGIN;
     const animBandTopCy = vh - INTRO_ANIM_ROWS_FROM_BOTTOM * gap;
 
-    for (let i = 0; i < dotEls.length; i++) {
+    for (let i = 0; i < positions.length; i++) {
       const { x, y } = positions[i];
       const cx = rect.left + x;
       const cy = rect.top + y;
@@ -826,28 +851,40 @@ if (questionsForm) {
       }
 
       const r = radii[i];
-      const scale = r / baseRadius;
       const glow = (r - baseRadius) / (maxRadius - baseRadius);
       const a = 0.1 + Math.min(1, Math.max(0, glow)) * 0.14;
-      const el = dotEls[i];
-      el.style.transform = `translate(-50%, calc(-50% + ${grabTy}px)) scale(${scale})`;
-      el.style.background = `rgba(244, 245, 251, ${a})`;
+      ctx.beginPath();
+      ctx.arc(x, y + grabTy, r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(244, 245, 251, ${a})`;
+      ctx.fill();
     }
 
     requestAnimationFrame(draw);
   }
 
+  let rebuildDebounceTimer = null;
+
+  function scheduleRebuild() {
+    if (rebuildDebounceTimer !== null) {
+      clearTimeout(rebuildDebounceTimer);
+    }
+    rebuildDebounceTimer = setTimeout(() => {
+      rebuildDebounceTimer = null;
+      rebuild();
+    }, 160);
+  }
+
   const ro = new ResizeObserver(() => {
-    rebuild();
+    scheduleRebuild();
   });
   ro.observe(container);
   if (hero) {
     new ResizeObserver(() => {
-      rebuild();
+      scheduleRebuild();
     }).observe(hero);
   }
   window.addEventListener("resize", () => {
-    rebuild();
+    scheduleRebuild();
   });
 
   rebuild();
