@@ -645,62 +645,10 @@ if (questionsForm) {
   const influenceRadius = 150;
   const lerp = 0.14;
 
-  /** First viewport entry: sine bump over INTRO_MS; peak scales by introPeakAmp (random per dot) */
-  const INTRO_MS = 1000;
-  const INTRO_VIEW_MARGIN = 72;
-  const INTRO_PEAK_MIN = 0.28;
-  const INTRO_PEAK_MAX = 1;
-
-  /** Only dots in the bottom this many grid rows (from viewport bottom) may run intro/grab */
-  const INTRO_ANIM_ROWS_FROM_BOTTOM = 12;
-
-  /** “Grab” pulse on dots above when a dot below starts intro (already-finished dots only) */
-  const GRAB_MS = 450;
-  const GRAB_LIFT_PX = 3.2;
-  const GRAB_AMP_MIN = 0.18;
-  const GRAB_AMP_MAX = 0.52;
-  const GRAB_CHANCE_ROW_ABOVE = 0.52;
-  const GRAB_CHANCE_ROW_ABOVE2 = 0.22;
-  const GRAB_ROW2_DELAY_MS = 78;
-
-  /** @type {Map<string, number>} */
-  let indexByCoord = new Map();
-
-  /** Survives rebuild() so mobile resize / URL bar doesn’t replay intros */
-  let introCompletedKeys = new Set();
-
   /** @type {{ x: number; y: number }[]} */
   let positions = [];
   /** @type {number[]} */
   let radii = [];
-  /** @type {boolean[]} */
-  let introDone = [];
-  /** @type {(number | null)[]} */
-  let introStartAt = [];
-  /** @type {number[]} — multiplier on (maxRadius − baseRadius) at intro peak */
-  let introPeakAmp = [];
-  /** @type {(number | null)[]} */
-  let grabStartAt = [];
-  /** @type {number[]} */
-  let grabPeakAmp = [];
-
-  function scheduleGrabPulseAbove(x, y, now, rect, bandTopCy) {
-    const cyAtDotY = (yy) => rect.top + yy;
-    const tryRow = (rowsUp, chance, delayMs) => {
-      if (Math.random() >= chance) return;
-      const yy = y - rowsUp * gap;
-      if (yy < gap / 2) return;
-      if (cyAtDotY(yy) < bandTopCy) return;
-      const j = indexByCoord.get(`${x},${yy}`);
-      if (j === undefined) return;
-      if (!introDone[j]) return;
-      if (grabStartAt[j] !== null) return;
-      grabStartAt[j] = now + delayMs;
-      grabPeakAmp[j] = GRAB_AMP_MIN + Math.random() * (GRAB_AMP_MAX - GRAB_AMP_MIN);
-    };
-    tryRow(1, GRAB_CHANCE_ROW_ABOVE, 0);
-    tryRow(2, GRAB_CHANCE_ROW_ABOVE2, GRAB_ROW2_DELAY_MS);
-  }
 
   function syncTopToHero() {
     if (hero) {
@@ -722,45 +670,21 @@ if (questionsForm) {
 
   function rebuild() {
     syncTopToHero();
-    for (let idx = 0; idx < positions.length; idx++) {
-      if (introDone[idx]) {
-        introCompletedKeys.add(`${positions[idx].x},${positions[idx].y}`);
-      }
-    }
 
     const w = container.clientWidth;
     const h = container.clientHeight;
     positions = [];
     radii = [];
-    introDone = [];
-    introStartAt = [];
-    introPeakAmp = [];
-    grabStartAt = [];
-    grabPeakAmp = [];
-    indexByCoord = new Map();
     if (w < 1 || h < 1) return;
 
     resizeCanvas();
 
-    const peakSpan = INTRO_PEAK_MAX - INTRO_PEAK_MIN;
     for (let y = gap / 2; y < h; y += gap) {
       for (let x = gap / 2; x < w; x += gap) {
-        const key = `${x},${y}`;
         positions.push({ x, y });
         radii.push(baseRadius);
-        introDone.push(introCompletedKeys.has(key));
-        introStartAt.push(null);
-        introPeakAmp.push(INTRO_PEAK_MIN + Math.random() * peakSpan);
-        grabStartAt.push(null);
-        grabPeakAmp.push(0);
       }
     }
-    positions.forEach((pos, idx) => {
-      indexByCoord.set(`${pos.x},${pos.y}`, idx);
-    });
-
-    const stillPresent = new Set(positions.map((p) => `${p.x},${p.y}`));
-    introCompletedKeys = new Set([...introCompletedKeys].filter((k) => stillPresent.has(k)));
   }
 
   let mouseClientX = -1e6;
@@ -795,66 +719,22 @@ if (questionsForm) {
     const mx = mouseClientX - rect.left;
     const my = mouseClientY - rect.top;
     const t = ts * 0.001;
-    const now = performance.now();
-    const vh = window.innerHeight;
-    const vw = window.innerWidth;
-    const vm = INTRO_VIEW_MARGIN;
-    const animBandTopCy = vh - INTRO_ANIM_ROWS_FROM_BOTTOM * gap;
 
     for (let i = 0; i < positions.length; i++) {
       const { x, y } = positions[i];
-      const cx = rect.left + x;
-      const cy = rect.top + y;
-      const inView = cy >= -vm && cy <= vh + vm && cx >= -vm && cx <= vw + vm;
-      const inAnimBand = cy >= animBandTopCy;
 
-      if (!introDone[i] && inView && introStartAt[i] === null && inAnimBand) {
-        introStartAt[i] = now;
-        scheduleGrabPulseAbove(x, y, now, rect, animBandTopCy);
-      }
-      if (!introDone[i] && inView && introStartAt[i] === null && cy < animBandTopCy) {
-        introDone[i] = true;
-        grabStartAt[i] = null;
-      }
-
-      let grabTy = 0;
-
-      if (!introDone[i] && introStartAt[i] !== null) {
-        const u = Math.min(1, (now - introStartAt[i]) / INTRO_MS);
-        const amp = introPeakAmp[i];
-        radii[i] = baseRadius + (maxRadius - baseRadius) * amp * Math.sin(u * Math.PI);
-        if (u >= 1) {
-          introDone[i] = true;
-          introStartAt[i] = null;
-          radii[i] = baseRadius;
-        }
-      } else {
-        let grabRadiusAdd = 0;
-        const gs = grabStartAt[i];
-        if (gs !== null && now >= gs) {
-          const gu = (now - gs) / GRAB_MS;
-          if (gu >= 1) {
-            grabStartAt[i] = null;
-          } else {
-            const gsin = Math.sin(gu * Math.PI);
-            grabRadiusAdd = (maxRadius - baseRadius) * grabPeakAmp[i] * gsin;
-            grabTy = -GRAB_LIFT_PX * gsin;
-          }
-        }
-
-        const dist = Math.hypot(x - mx, y - my);
-        const raw = Math.max(0, 1 - dist / influenceRadius);
-        const smooth = raw * raw * (3 - 2 * raw);
-        const pulse = 1 + 0.2 * Math.sin(t * 3.2 + x * 0.07 + y * 0.07) * smooth;
-        const target = (baseRadius + (maxRadius - baseRadius) * smooth) * pulse + grabRadiusAdd;
-        radii[i] += (target - radii[i]) * lerp;
-      }
+      const dist = Math.hypot(x - mx, y - my);
+      const raw = Math.max(0, 1 - dist / influenceRadius);
+      const smooth = raw * raw * (3 - 2 * raw);
+      const pulse = 1 + 0.2 * Math.sin(t * 3.2 + x * 0.07 + y * 0.07) * smooth;
+      const target = (baseRadius + (maxRadius - baseRadius) * smooth) * pulse;
+      radii[i] += (target - radii[i]) * lerp;
 
       const r = radii[i];
       const glow = (r - baseRadius) / (maxRadius - baseRadius);
       const a = 0.1 + Math.min(1, Math.max(0, glow)) * 0.14;
       ctx.beginPath();
-      ctx.arc(x, y + grabTy, r, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(244, 245, 251, ${a})`;
       ctx.fill();
     }
