@@ -19,7 +19,7 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  /* Instant wheel / trackpad scroll; smooth scrolling is applied only for in-page links in script.js */
   scrollbar-width: auto;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
@@ -96,6 +96,7 @@ main > .dot-field {
   pointer-events: none;
   /* Non-negative z-index avoids “ghost” double compositing with body behind main on mobile. */
   z-index: 0;
+  contain: layout paint;
 }
 
 main > .dot-field .dot-field__canvas {
@@ -428,8 +429,8 @@ h3:has(.section-title-emoji) {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(12, 16, 34, 0.8);
-  backdrop-filter: blur(12px);
+  /* Solid bar instead of backdrop-filter: blur — much cheaper while scrolling */
+  background: rgba(12, 16, 34, 0.94);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -1079,8 +1080,7 @@ h3:has(.section-title-emoji) {
 .site-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 28px 0 40px;
-  background: rgba(12, 16, 34, 0.7);
-  backdrop-filter: blur(10px);
+  background: rgba(12, 16, 34, 0.92);
 }
 
 .footer-inner {

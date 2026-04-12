@@ -17,6 +17,26 @@ document.querySelectorAll(".nav a").forEach((link) => {
   link.addEventListener("click", () => nav.classList.remove("open"));
 });
 
+/** Same-page #anchors: smooth scroll without global `scroll-behavior` (keeps wheel/trackpad scrolling snappy). */
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("a[href^='#']");
+  if (!a) return;
+  const href = a.getAttribute("href");
+  if (!href || href === "#") return;
+  let id;
+  try {
+    id = decodeURIComponent(href.slice(1));
+  } catch {
+    return;
+  }
+  if (!id) return;
+  const target = document.getElementById(id);
+  if (!target) return;
+  e.preventDefault();
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  history.replaceState(null, "", href);
+});
+
 const fadeItems = document.querySelectorAll(
   ".section, .about-image, .service-card, .edu-exp-card, .certification-card, .contact-form, .questions-form, .project-card, .cta-strip, .real-review-card"
 );
@@ -631,15 +651,19 @@ if (questionsForm) {
   const container = document.querySelector("main > .dot-field");
   if (!container) return;
 
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   const canvas = document.createElement("canvas");
   canvas.className = "dot-field__canvas";
   canvas.setAttribute("aria-hidden", "true");
   container.appendChild(canvas);
   const ctx = canvas.getContext("2d");
+  if (!ctx) return;
 
   const hero = document.querySelector("#home");
 
-  const gap = 28;
+  const minGap = 28;
+  const maxDots = 3200;
   const baseRadius = 1.25;
   const maxRadius = 5.25;
   const influenceRadius = 150;
@@ -650,22 +674,76 @@ if (questionsForm) {
   /** @type {number[]} */
   let radii = [];
 
+  let fieldVisible = true;
+  let scrollPause = false;
+  let scrollPauseTimer = 0;
+  let rafId = 0;
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      scrollPause = true;
+      window.clearTimeout(scrollPauseTimer);
+      scrollPauseTimer = window.setTimeout(() => {
+        scrollPause = false;
+      }, 100);
+    },
+    { passive: true }
+  );
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0];
+      fieldVisible = !!(entry && entry.isIntersecting);
+      if (fieldVisible && !reduceMotion) startLoop();
+      else stopLoop();
+    },
+    { root: null, rootMargin: "120px 0px 120px 0px", threshold: 0 }
+  );
+  io.observe(container);
+
+  function stopLoop() {
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+  }
+
+  function startLoop() {
+    if (reduceMotion || rafId) return;
+    rafId = requestAnimationFrame(draw);
+  }
+
   function syncTopToHero() {
     if (hero) {
       container.style.top = `${hero.offsetHeight}px`;
     }
   }
 
-  function resizeCanvas() {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
+  function resizeCanvas(w, h) {
     if (w < 1 || h < 1) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    const pixels = w * h;
+    const dpr = Math.min(window.devicePixelRatio || 1, pixels > 3_500_000 ? 1.5 : 2);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function drawStatic() {
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    if (positions.length === 0 || cw < 1 || ch < 1) return;
+    ctx.clearRect(0, 0, cw, ch);
+    const fill = "rgba(244, 245, 251, 0.12)";
+    for (let i = 0; i < positions.length; i++) {
+      const { x, y } = positions[i];
+      ctx.beginPath();
+      ctx.arc(x, y, baseRadius, 0, Math.PI * 2);
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
   }
 
   function rebuild() {
@@ -677,13 +755,29 @@ if (questionsForm) {
     radii = [];
     if (w < 1 || h < 1) return;
 
-    resizeCanvas();
+    let gap = minGap;
+    let cols = Math.floor(w / gap);
+    let rows = Math.floor(h / gap);
+    while (cols * rows > maxDots && gap < 88) {
+      gap += 4;
+      cols = Math.floor(w / gap);
+      rows = Math.floor(h / gap);
+    }
+
+    resizeCanvas(w, h);
 
     for (let y = gap / 2; y < h; y += gap) {
       for (let x = gap / 2; x < w; x += gap) {
         positions.push({ x, y });
         radii.push(baseRadius);
       }
+    }
+
+    stopLoop();
+    if (reduceMotion) {
+      drawStatic();
+    } else if (fieldVisible) {
+      startLoop();
     }
   }
 
@@ -705,41 +799,49 @@ if (questionsForm) {
   );
 
   function draw(ts) {
-    const rect = container.getBoundingClientRect();
-    const cw = container.clientWidth;
-    const ch = container.clientHeight;
-
-    if (positions.length === 0 || cw < 1 || ch < 1) {
-      requestAnimationFrame(draw);
+    if (!fieldVisible || reduceMotion) {
+      rafId = 0;
       return;
     }
 
-    ctx.clearRect(0, 0, cw, ch);
+    if (!scrollPause) {
+      const rect = container.getBoundingClientRect();
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
 
-    const mx = mouseClientX - rect.left;
-    const my = mouseClientY - rect.top;
-    const t = ts * 0.001;
+      if (positions.length > 0 && cw >= 1 && ch >= 1) {
+        ctx.clearRect(0, 0, cw, ch);
 
-    for (let i = 0; i < positions.length; i++) {
-      const { x, y } = positions[i];
+        const mx = mouseClientX - rect.left;
+        const my = mouseClientY - rect.top;
+        const t = ts * 0.001;
 
-      const dist = Math.hypot(x - mx, y - my);
-      const raw = Math.max(0, 1 - dist / influenceRadius);
-      const smooth = raw * raw * (3 - 2 * raw);
-      const pulse = 1 + 0.2 * Math.sin(t * 3.2 + x * 0.07 + y * 0.07) * smooth;
-      const target = (baseRadius + (maxRadius - baseRadius) * smooth) * pulse;
-      radii[i] += (target - radii[i]) * lerp;
+        for (let i = 0; i < positions.length; i++) {
+          const { x, y } = positions[i];
 
-      const r = radii[i];
-      const glow = (r - baseRadius) / (maxRadius - baseRadius);
-      const a = 0.1 + Math.min(1, Math.max(0, glow)) * 0.14;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(244, 245, 251, ${a})`;
-      ctx.fill();
+          const dist = Math.hypot(x - mx, y - my);
+          const raw = Math.max(0, 1 - dist / influenceRadius);
+          const smooth = raw * raw * (3 - 2 * raw);
+          const pulse = 1 + 0.2 * Math.sin(t * 3.2 + x * 0.07 + y * 0.07) * smooth;
+          const target = (baseRadius + (maxRadius - baseRadius) * smooth) * pulse;
+          radii[i] += (target - radii[i]) * lerp;
+
+          const r = radii[i];
+          const glow = (r - baseRadius) / (maxRadius - baseRadius);
+          const a = 0.1 + Math.min(1, Math.max(0, glow)) * 0.14;
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(244, 245, 251, ${a})`;
+          ctx.fill();
+        }
+      }
     }
 
-    requestAnimationFrame(draw);
+    if (fieldVisible && !reduceMotion) {
+      rafId = requestAnimationFrame(draw);
+    } else {
+      rafId = 0;
+    }
   }
 
   let rebuildDebounceTimer = null;
@@ -768,5 +870,4 @@ if (questionsForm) {
   });
 
   rebuild();
-  requestAnimationFrame(draw);
 })();
