@@ -1504,6 +1504,11 @@ main > #home {
   margin-bottom: 12px;
 }
 
+.payment-checkbox-field--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .payment-checkbox-label {
   display: flex;
   gap: 12px;

@@ -622,12 +622,20 @@ const PAYPAL_CLIENT_ID =
 const PAYPAL_PRICE_FULL = 799.99;
 const PAYPAL_PRICE_SEO = 99.99;
 const PAYPAL_DEPOSIT = Math.round(PAYPAL_PRICE_FULL * 0.15 * 100) / 100;
+// $1.00 is above PayPal's per-transaction fee floor so the payment actually
+// clears and appears in your PayPal activity (a $0.01 charge is entirely eaten
+// by fees and will not show a balance or a visible bank statement line).
+const PAYPAL_TEST_AMOUNT = 1.0;
 
 let paypalSdkPromise = null;
 let paypalButtonsInstance = null;
 
 function computePayPalTotals() {
   const mode = document.querySelector('input[name="pay-type"]:checked')?.value || "full";
+  if (mode === "test") {
+    const amt = PAYPAL_TEST_AMOUNT;
+    return { mode: "test", seo: false, base: amt, total: amt, seoPart: 0 };
+  }
   const seo = !!document.getElementById("seo-add-on")?.checked;
   const base = mode === "deposit" ? PAYPAL_DEPOSIT : PAYPAL_PRICE_FULL;
   const seoPart = seo ? PAYPAL_PRICE_SEO : 0;
@@ -639,6 +647,10 @@ function updatePackageHiddenField() {
   const p = document.getElementById("package");
   if (!p) return;
   const t = computePayPalTotals();
+  if (t.mode === "test") {
+    p.value = `Checkout test · $${PAYPAL_TEST_AMOUNT.toFixed(2)}`;
+    return;
+  }
   const bits = ["Business website package"];
   bits.push(t.mode === "deposit" ? `deposit $${PAYPAL_DEPOSIT.toFixed(2)}` : `full $${PAYPAL_PRICE_FULL.toFixed(2)}`);
   if (t.seo) bits.push(`SEO +$${PAYPAL_PRICE_SEO.toFixed(2)}`);
@@ -737,9 +749,11 @@ function renderContactPayPalButtons() {
         createOrder(_data, actions) {
           const t = computePayPalTotals();
           const description =
-            t.mode === "deposit"
-              ? "Derek's Website Services - project deposit"
-              : "Derek's Website Services - website package";
+            t.mode === "test"
+              ? "Derek's Website Services - checkout test"
+              : t.mode === "deposit"
+                ? "Derek's Website Services - project deposit"
+                : "Derek's Website Services - website package";
           return actions.order.create({
             purchase_units: [
               {
@@ -772,12 +786,29 @@ function renderContactPayPalButtons() {
     });
 }
 
+function syncSeoWithPayMode() {
+  const mode = document.querySelector('input[name="pay-type"]:checked')?.value;
+  const seo = document.getElementById("seo-add-on");
+  const wrap = document.querySelector(".payment-checkbox-field");
+  if (!seo) return;
+  if (mode === "test") {
+    seo.checked = false;
+    seo.disabled = true;
+    wrap?.classList.add("payment-checkbox-field--disabled");
+  } else {
+    seo.disabled = false;
+    wrap?.classList.remove("payment-checkbox-field--disabled");
+  }
+}
+
 function initContactPayPalSection() {
   const form = document.getElementById("contact-form");
   if (!form) return;
+  syncSeoWithPayMode();
   updatePaymentTotalDisplay();
   document.querySelectorAll('input[name="pay-type"]').forEach((el) => {
     el.addEventListener("change", () => {
+      syncSeoWithPayMode();
       updatePaymentTotalDisplay();
       renderContactPayPalButtons();
     });
