@@ -84,7 +84,7 @@
           <a href="#home">Home</a>
           <a href="#about">About</a>
           <a href="#services">Services</a>
-          <a href="#education-experience">Background</a>
+          <a href="#education-experience">Background &amp; contract</a>
           <a href="#payments">Payment options</a>
         </nav>
         <div class="header-actions">
@@ -367,32 +367,42 @@
       <section id="education-experience" class="education-experience section">
         <div class="container">
           <div class="section-head section-head--center">
-            <p class="section-kicker">Background</p>
-            <h2 class="section-heading-serif">Self-taught, project-driven, still learning.</h2>
+            <p class="section-kicker">Background &amp; contract</p>
+            <h2 class="section-heading-serif">How I work, and the agreement behind each build.</h2>
             <p class="section-lead section-lead--center">
-              Certificates below are the core web stack. The rest comes from shipping real client work and larger apps
-              when the job calls for it.
+              A tight summary of my path plus the agreement. Open the contract to flip pages with Previous and Next.
             </p>
           </div>
-          <div class="edu-exp-grid">
-            <article class="glass-card edu-exp-card">
-              <h3 class="edu-card-title">What I do</h3>
-              <h4>Independent developer</h4>
-              <p>I ship small business sites and larger applications when the scope requires it.</p>
-              <p>HTML, CSS, JavaScript, TypeScript, React, Next.js, Node, Tailwind, Vercel.</p>
-              <p>I write code you or the next developer can open later without guessing.</p>
-            </article>
-            <article class="glass-card edu-exp-card">
-              <h3 class="edu-card-title">How I learned</h3>
-              <h4>Courses plus real projects</h4>
-              <p>Structured courses including Mimo, plus continuous study alongside client work.</p>
-              <p>Recent focus:</p>
-              <ul>
-                <li>Servers and data</li>
-                <li>Maintainable application structure</li>
-                <li>Deploy and ship with confidence</li>
-              </ul>
-            </article>
+          <div class="background-agreement-split">
+            <div class="glass-card background-summary-card">
+              <h3 class="edu-card-title">At a glance</h3>
+              <p class="background-summary-text">
+                Dallas-area independent developer: small business sites first, larger apps when the scope needs it.
+                Stack includes HTML, CSS, JavaScript and TypeScript, React, Next.js, Node, Tailwind, and Vercel, with
+                handoffs a future dev can follow. Learning blends courses (including Mimo) with shipped work, focused
+                on maintainability and reliable deploys.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="agreement-cover-button glass-card"
+              id="agreement-open"
+              aria-haspopup="dialog"
+              aria-controls="agreement-lightbox"
+              aria-expanded="false"
+              aria-label="Open Website Development Agreement PDF viewer"
+            >
+              <img
+                class="agreement-cover-img"
+                src="Asset/Contract.png"
+                alt="Website Development Agreement cover"
+                width="800"
+                height="1035"
+                loading="lazy"
+                decoding="async"
+              />
+              <span class="agreement-cover-caption">Website Development Agreement · 3 pages · click to read</span>
+            </button>
           </div>
           <div class="certifications-block">
             <h3 class="certifications-heading">Certifications</h3>
@@ -544,7 +554,7 @@
                 <h3 class="form-block-title">Payment</h3>
                 <p class="payment-help">
                   Pay with PayPal or with a card through PayPal (where available). Complete checkout before you send
-                  this inquiry.
+                  this inquiry. This has been tested and works. By paying you are agreeing to the terms and conditions of the contract.
                 </p>
                 <p class="payment-config-missing" id="paypal-config-missing" hidden>
                   Add your public <strong>PayPal Client ID</strong> in <code>script.js</code> as
@@ -559,10 +569,6 @@
                   <label class="payment-radio-label">
                     <input type="radio" name="pay-type" value="deposit" />
                     <span>Deposit to start work (15% of package today: <strong>$120.00</strong>, balance per agreement before launch)</span>
-                  </label>
-                  <label class="payment-radio-label">
-                    <input type="radio" name="pay-type" value="test" />
-                    <span>Test payment (<strong>$0.01</strong>) to confirm checkout with your own card or balance</span>
                   </label>
                 </fieldset>
                 <div class="field payment-checkbox-field">
@@ -675,6 +681,36 @@
       <img src="" alt="" />
     </div>
 
+    <div
+      id="agreement-lightbox"
+      class="agreement-lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="agreement-dialog-title"
+      aria-hidden="true"
+    >
+      <div class="agreement-lightbox-panel glass-card">
+        <div class="agreement-lightbox-toolbar">
+          <h2 id="agreement-dialog-title" class="agreement-lightbox-title">Website Development Agreement</h2>
+          <div class="agreement-lightbox-controls">
+            <button type="button" class="btn ghost agreement-page-btn" id="agreement-page-prev">Previous page</button>
+            <span id="agreement-page-label" class="agreement-page-label" aria-live="polite">Loading…</span>
+            <button type="button" class="btn ghost agreement-page-btn" id="agreement-page-next">Next page</button>
+            <a
+              class="btn ghost agreement-open-tab"
+              href="Asset/Website-Development-Agreement.pdf"
+              target="_blank"
+              rel="noopener"
+              >Open in new tab</a>
+          </div>
+          <button type="button" class="agreement-lightbox-close" aria-label="Close agreement viewer">×</button>
+        </div>
+        <div class="agreement-pdf-viewport" id="agreement-pdf-viewport">
+          <canvas id="agreement-pdf-canvas" class="agreement-pdf-canvas" aria-label="Agreement PDF page"></canvas>
+        </div>
+      </div>
+    </div>
+
     <footer class="site-footer">
       <div class="container footer-grid">
         <div class="footer-brand">
@@ -693,7 +729,7 @@
             <li><a href="#about">About</a></li>
             <li><a href="#projects">Portfolio</a></li>
             <li><a href="#services">Services</a></li>
-            <li><a href="#education-experience">Background</a></li>
+            <li><a href="#education-experience">Background &amp; contract</a></li>
             <li><a href="#payments">Payment options</a></li>
             <li><a href="#questions">Quick questions</a></li>
           </ul>
@@ -716,6 +752,13 @@
 
     <a href="#contact" class="btn primary fab-service">Request a service</a>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+      if (typeof pdfjsLib !== "undefined") {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      }
+    </script>
     <script src="script.js"></script>
   </body>
 </html>

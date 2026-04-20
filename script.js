@@ -95,7 +95,7 @@ document.addEventListener("click", (e) => {
 });
 
 const fadeItems = document.querySelectorAll(
-  ".section, .about-image, .service-card, .edu-exp-card, .certification-card, .contact-form, .questions-form, .project-card, .real-review-card"
+  ".section, .about-image, .service-card, .background-summary-card, .agreement-cover-button, .certification-card, .contact-form, .questions-form, .project-card, .real-review-card"
 );
 const observer = new IntersectionObserver(
   (entries) => {
@@ -310,6 +310,161 @@ if (portraitLightbox) {
   });
 }
 
+const AGREEMENT_PDF_PATH = "Asset/Website-Development-Agreement.pdf";
+
+const agreementLightbox = document.getElementById("agreement-lightbox");
+const agreementOpenBtn = document.getElementById("agreement-open");
+const agreementPdfViewport = document.getElementById("agreement-pdf-viewport");
+const agreementPdfCanvas = document.getElementById("agreement-pdf-canvas");
+const agreementPageLabel = document.getElementById("agreement-page-label");
+const agreementPagePrev = document.getElementById("agreement-page-prev");
+const agreementPageNext = document.getElementById("agreement-page-next");
+const agreementCloseBtn = agreementLightbox?.querySelector(".agreement-lightbox-close");
+
+let agreementCurrentPage = 1;
+let agreementPdfDoc = null;
+let agreementPdfLoadPromise = null;
+let agreementResizeTimer = 0;
+
+function teardownAgreementPdf() {
+  if (agreementPdfDoc) {
+    try {
+      agreementPdfDoc.destroy();
+    } catch (_) {
+      /* ignore */
+    }
+    agreementPdfDoc = null;
+  }
+  agreementPdfLoadPromise = null;
+  if (agreementPdfCanvas) {
+    const ctx = agreementPdfCanvas.getContext("2d");
+    if (ctx) ctx.clearRect(0, 0, agreementPdfCanvas.width, agreementPdfCanvas.height);
+    agreementPdfCanvas.width = 0;
+    agreementPdfCanvas.height = 0;
+  }
+}
+
+function ensureAgreementPdfLoaded() {
+  if (agreementPdfDoc) return Promise.resolve(agreementPdfDoc);
+  if (typeof pdfjsLib === "undefined") {
+    return Promise.reject(new Error("pdf.js not loaded"));
+  }
+  if (!agreementPdfLoadPromise) {
+    agreementPdfLoadPromise = pdfjsLib
+      .getDocument(AGREEMENT_PDF_PATH)
+      .promise.then((doc) => {
+        agreementPdfDoc = doc;
+        agreementPdfLoadPromise = null;
+        return doc;
+      })
+      .catch((err) => {
+        agreementPdfLoadPromise = null;
+        throw err;
+      });
+  }
+  return agreementPdfLoadPromise;
+}
+
+function updateAgreementPageNav() {
+  const total = agreementPdfDoc?.numPages || 0;
+  if (agreementPageLabel) {
+    if (!total) {
+      agreementPageLabel.textContent = "Loading…";
+    } else {
+      agreementPageLabel.textContent = `Page ${agreementCurrentPage} of ${total}`;
+    }
+  }
+  if (agreementPagePrev) agreementPagePrev.disabled = agreementCurrentPage <= 1 || !agreementPdfDoc;
+  if (agreementPageNext) {
+    agreementPageNext.disabled = !agreementPdfDoc || agreementCurrentPage >= (agreementPdfDoc.numPages || 0);
+  }
+}
+
+async function renderAgreementPdfPage(pageNum) {
+  if (!agreementPdfCanvas || !agreementPdfViewport || !agreementPdfDoc) return;
+  const total = agreementPdfDoc.numPages;
+  agreementCurrentPage = Math.max(1, Math.min(total, pageNum));
+  const page = await agreementPdfDoc.getPage(agreementCurrentPage);
+  const base = page.getViewport({ scale: 1 });
+  const maxW = Math.max(120, agreementPdfViewport.clientWidth - 8);
+  const maxH = Math.max(120, agreementPdfViewport.clientHeight - 8);
+  const scale = Math.min(maxW / base.width, maxH / base.height, 2.5);
+  const viewport = page.getViewport({ scale });
+  const canvas = agreementPdfCanvas;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  canvas.width = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  updateAgreementPageNav();
+}
+
+async function openAgreementLightbox() {
+  if (!agreementLightbox || !agreementPdfCanvas) return;
+  agreementLightbox.classList.add("active");
+  agreementLightbox.setAttribute("aria-hidden", "false");
+  agreementOpenBtn?.setAttribute("aria-expanded", "true");
+  updateAgreementPageNav();
+  try {
+    await ensureAgreementPdfLoaded();
+    agreementCurrentPage = 1;
+    await renderAgreementPdfPage(1);
+  } catch (err) {
+    console.error(err);
+    if (agreementPageLabel) agreementPageLabel.textContent = "Could not load PDF";
+    alert("Could not load the agreement PDF. Try Open in new tab.");
+  }
+}
+
+function closeAgreementLightbox() {
+  if (!agreementLightbox) return;
+  agreementLightbox.classList.remove("active");
+  agreementLightbox.setAttribute("aria-hidden", "true");
+  agreementOpenBtn?.setAttribute("aria-expanded", "false");
+  teardownAgreementPdf();
+  if (agreementPageLabel) agreementPageLabel.textContent = "Loading…";
+  updateAgreementPageNav();
+}
+
+agreementOpenBtn?.addEventListener("click", () => {
+  void openAgreementLightbox();
+});
+
+agreementCloseBtn?.addEventListener("click", () => {
+  closeAgreementLightbox();
+});
+
+agreementLightbox?.addEventListener("click", (e) => {
+  if (e.target === agreementLightbox) {
+    closeAgreementLightbox();
+  }
+});
+
+agreementPagePrev?.addEventListener("click", () => {
+  if (!agreementPdfDoc || agreementCurrentPage <= 1) return;
+  void renderAgreementPdfPage(agreementCurrentPage - 1);
+});
+
+agreementPageNext?.addEventListener("click", () => {
+  if (!agreementPdfDoc || agreementCurrentPage >= agreementPdfDoc.numPages) return;
+  void renderAgreementPdfPage(agreementCurrentPage + 1);
+});
+
+window.addEventListener("resize", () => {
+  if (!agreementLightbox?.classList.contains("active") || !agreementPdfDoc) return;
+  window.clearTimeout(agreementResizeTimer);
+  agreementResizeTimer = window.setTimeout(() => {
+    void renderAgreementPdfPage(agreementCurrentPage);
+  }, 150);
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (agreementLightbox?.classList.contains("active")) {
+    closeAgreementLightbox();
+  }
+});
+
 const MAX_PASTED_IMAGES = 5;
 const pastedStores = { contact: [], questions: [] };
 let pastedImageIdSeq = 0;
@@ -467,18 +622,12 @@ const PAYPAL_CLIENT_ID =
 const PAYPAL_PRICE_FULL = 799.99;
 const PAYPAL_PRICE_SEO = 99.99;
 const PAYPAL_DEPOSIT = Math.round(PAYPAL_PRICE_FULL * 0.15 * 100) / 100;
-/** Smallest USD test charge PayPal usually allows. Raise to 1.00 if your account rejects $0.01. */
-const PAYPAL_TEST_AMOUNT = 0.01;
 
 let paypalSdkPromise = null;
 let paypalButtonsInstance = null;
 
 function computePayPalTotals() {
   const mode = document.querySelector('input[name="pay-type"]:checked')?.value || "full";
-  if (mode === "test") {
-    const amt = PAYPAL_TEST_AMOUNT;
-    return { mode: "test", seo: false, base: amt, total: amt, seoPart: 0 };
-  }
   const seo = !!document.getElementById("seo-add-on")?.checked;
   const base = mode === "deposit" ? PAYPAL_DEPOSIT : PAYPAL_PRICE_FULL;
   const seoPart = seo ? PAYPAL_PRICE_SEO : 0;
@@ -490,10 +639,6 @@ function updatePackageHiddenField() {
   const p = document.getElementById("package");
   if (!p) return;
   const t = computePayPalTotals();
-  if (t.mode === "test") {
-    p.value = `Checkout test · $${PAYPAL_TEST_AMOUNT.toFixed(2)}`;
-    return;
-  }
   const bits = ["Business website package"];
   bits.push(t.mode === "deposit" ? `deposit $${PAYPAL_DEPOSIT.toFixed(2)}` : `full $${PAYPAL_PRICE_FULL.toFixed(2)}`);
   if (t.seo) bits.push(`SEO +$${PAYPAL_PRICE_SEO.toFixed(2)}`);
@@ -592,11 +737,9 @@ function renderContactPayPalButtons() {
         createOrder(_data, actions) {
           const t = computePayPalTotals();
           const description =
-            t.mode === "test"
-              ? "Derek's Website Services - checkout test"
-              : t.mode === "deposit"
-                ? "Derek's Website Services - project deposit"
-                : "Derek's Website Services - website package";
+            t.mode === "deposit"
+              ? "Derek's Website Services - project deposit"
+              : "Derek's Website Services - website package";
           return actions.order.create({
             purchase_units: [
               {
@@ -629,29 +772,12 @@ function renderContactPayPalButtons() {
     });
 }
 
-function syncSeoWithPayMode() {
-  const mode = document.querySelector('input[name="pay-type"]:checked')?.value;
-  const seo = document.getElementById("seo-add-on");
-  const wrap = document.querySelector(".payment-checkbox-field");
-  if (!seo) return;
-  if (mode === "test") {
-    seo.checked = false;
-    seo.disabled = true;
-    wrap?.classList.add("payment-checkbox-field--disabled");
-  } else {
-    seo.disabled = false;
-    wrap?.classList.remove("payment-checkbox-field--disabled");
-  }
-}
-
 function initContactPayPalSection() {
   const form = document.getElementById("contact-form");
   if (!form) return;
-  syncSeoWithPayMode();
   updatePaymentTotalDisplay();
   document.querySelectorAll('input[name="pay-type"]').forEach((el) => {
     el.addEventListener("change", () => {
-      syncSeoWithPayMode();
       updatePaymentTotalDisplay();
       renderContactPayPalButtons();
     });
@@ -848,7 +974,6 @@ if (contactForm) {
         if (fullRadio) fullRadio.checked = true;
         const seoCb = document.getElementById("seo-add-on");
         if (seoCb) seoCb.checked = false;
-        syncSeoWithPayMode();
         clearContactPaymentState();
         updatePaymentTotalDisplay();
         renderContactPayPalButtons();
