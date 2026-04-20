@@ -1,41 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Website design for small businesses in Texas and the Dallas area. Fair fixed pricing from $799. You review before you pay. Derek's Website Services."
+      content="Website design for small businesses in Texas and the Dallas area. Fair fixed pricing from $799.99. You review before you pay. Derek's Website Services."
     />
     <meta name="robots" content="index, follow" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <link rel="canonical" href="https://www.vertexstudio.me/" />
+    <link rel="canonical" href="https://dereks-website-services.com/" />
     <title>Website Design for Small Businesses in Texas | Derek's Website Services</title>
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:url" content="https://www.vertexstudio.me/" />
+    <meta property="og:url" content="https://dereks-website-services.com/" />
     <meta property="og:title" content="Website Design for Small Businesses in Texas | Derek's Website Services" />
     <meta
       property="og:description"
-      content="Website design for small businesses in Texas and the Dallas area. Fair fixed pricing from $799. You review before you pay."
+      content="Website design for small businesses in Texas and the Dallas area. Fair fixed pricing from $799.99. You review before you pay."
     />
-    <meta property="og:image" content="https://www.vertexstudio.me/Asset/DWS.png" />
+    <meta property="og:image" content="https://dereks-website-services.com/Asset/DWS.png" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Website Design for Small Businesses in Texas | Derek's Website Services" />
     <meta
       name="twitter:description"
-      content="Website design for small businesses in Texas and the Dallas area. Fair fixed pricing from $799."
+      content="Website design for small businesses in Texas and the Dallas area. Fair fixed pricing from $799.99."
     />
-    <meta name="twitter:image" content="https://www.vertexstudio.me/Asset/DWS.png" />
+    <meta name="twitter:image" content="https://dereks-website-services.com/Asset/DWS.png" />
+    <script>
+      (function () {
+        try {
+          var k = "dws-theme";
+          var stored = localStorage.getItem(k);
+          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var theme = stored === "light" || stored === "dark" ? stored : prefersDark ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "ProfessionalService",
-        "@id": "https://www.vertexstudio.me/#business",
+        "@id": "https://dereks-website-services.com/#business",
         "name": "Derek's Website Services",
         "description": "Website design for small businesses in Texas and the Dallas area. Affordable web design and small business website development.",
-        "url": "https://www.vertexstudio.me/",
-        "image": "https://www.vertexstudio.me/Asset/DWS.png",
+        "url": "https://dereks-website-services.com/",
+        "image": "https://dereks-website-services.com/Asset/DWS.png",
         "areaServed": [
           { "@type": "State", "name": "Texas" },
           { "@type": "City", "name": "Dallas" }
@@ -46,7 +59,7 @@
           "name": "Business website package",
           "price": "799.99",
           "priceCurrency": "USD",
-          "url": "https://www.vertexstudio.me/#payments"
+          "url": "https://dereks-website-services.com/#payments"
         }
       }
     </script>
@@ -54,7 +67,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="icon" type="image/png" href="Asset/DWS.png" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -67,16 +80,28 @@
           <img src="Asset/DWS.png" alt="Derek's Website Services logo" />
           <span class="logo-text">Derek's Website Services</span>
         </a>
-        <nav class="nav">
+        <nav class="nav" id="site-nav" aria-label="Primary">
           <a href="#home">Home</a>
           <a href="#about">About</a>
           <a href="#services">Services</a>
           <a href="#education-experience">Background</a>
-          <!-- <a href="#testimonials">Testimonials</a> -->
-          <a href="#payments">Payments</a>
-          <a href="#contact">Contact</a>
+          <a href="#payments">Payment options</a>
         </nav>
-        <button class="nav-toggle" aria-label="Toggle menu">Menu</button>
+        <div class="header-actions">
+          <button
+            type="button"
+            class="theme-toggle"
+            id="theme-toggle"
+            aria-label="Toggle light or dark theme"
+            aria-pressed="false"
+          >
+            <span class="theme-toggle-track" aria-hidden="true">
+              <span class="theme-toggle-thumb"></span>
+            </span>
+            <span class="theme-toggle-label visually-hidden" data-theme-label>Theme</span>
+          </button>
+          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+        </div>
       </div>
     </header>
 
@@ -85,46 +110,47 @@
       <section id="home" class="hero">
         <div class="hero-overlay"></div>
         <div class="container hero-content">
-          <p class="eyebrow">Website design for small businesses · Dallas area</p>
-          <h1>Website design for small businesses</h1>
-          <p class="hero-subtitle">
-            I'm Derek, a website developer near Dallas who focuses on website design for small businesses.
-          </p>
-          <p class="hero-subtitle">
-            Fast sites, clear pricing, and straight answers from the person doing the work.
+          <p class="eyebrow">Derek's Website Services · small business web design</p>
+          <h1>Premium websites for small businesses that need to look real online.</h1>
+          <p class="hero-lead">
+            Clean design, clear pricing, fast launch timelines, and direct communication from the person building the
+            site.
           </p>
           <div class="hero-actions">
-            <a class="btn primary" href="#contact">Contact me</a>
+            <a class="btn primary" href="#contact">Start a project</a>
             <a class="btn ghost" href="#projects">See my work</a>
+            <a class="btn ghost" href="#payments">View pricing</a>
           </div>
-          <div class="hero-stats">
-            <div>
-              <h3>From $799</h3>
-              <p>One package</p>
-              <span class="stat-note">SEO setup extra. You know the number up front.</span>
-            </div>
-            <div>
-              <h3>7 to 14 days</h3>
-              <p>Most builds</p>
-              <span class="stat-note">If you send copy and feedback on time.</span>
-            </div>
-            <div>
-              <h3>Direct communication</h3>
-              <p>You work with me on the website from start to finish.</p>
-              <span class="stat-note">I handle all website development. A partner may help with calls or scheduling.</span>
+          <div class="trust-marquee" aria-label="Highlights">
+            <div class="trust-marquee-inner">
+              <span class="trust-pill">From $799.99</span>
+              <span class="trust-pill">7-14 day builds</span>
+              <span class="trust-pill">Mobile-first</span>
+              <span class="trust-pill">Clear scope</span>
+              <span class="trust-pill">Dallas area</span>
+              <span class="trust-pill">Out-of-state welcome</span>
+              <span class="trust-pill trust-pill--dup" aria-hidden="true">From $799.99</span>
+              <span class="trust-pill trust-pill--dup" aria-hidden="true">7-14 day builds</span>
+              <span class="trust-pill trust-pill--dup" aria-hidden="true">Mobile-first</span>
+              <span class="trust-pill trust-pill--dup" aria-hidden="true">Clear scope</span>
+              <span class="trust-pill trust-pill--dup" aria-hidden="true">Dallas area</span>
+              <span class="trust-pill trust-pill--dup" aria-hidden="true">Out-of-state welcome</span>
             </div>
           </div>
         </div>
       </section>
 
+      <div class="section-rule" role="presentation"></div>
+
       <section id="about" class="about section">
         <div class="container about-grid">
           <div class="about-copy">
-            <h2><span class="section-title-emoji">👋</span> About <span class="section-title-emoji">👤</span></h2>
+            <p class="section-kicker">About</p>
+            <h2 class="section-heading-serif">A calm build process, built for owners who are short on time.</h2>
             <p class="section-lead">
-              I'm Derek, a website developer near Dallas who works with small businesses, mainly in Texas, though I'm
-              open to out-of-state projects when we're a good fit. Fair pricing, and you work with me from start to
-              finish on your site.
+              I'm Derek, a developer near Dallas who works with small businesses, mostly in Texas, though out-of-state
+              projects are welcome when we are a good fit. You get fair pricing and one direct line to the person
+              shipping your site from first draft to launch.
             </p>
           </div>
           <div class="about-image glass-card">
@@ -139,11 +165,12 @@
           </div>
         </div>
         <div class="container about-projects" id="projects">
-          <div class="section-title">
-            <h3><span class="section-title-emoji">📂</span> Portfolio <span class="section-title-emoji">🖼️</span></h3>
-            <p class="section-lead">
-              Examples of how I structure websites for real businesses, plus Study Hatch, a live learning platform.
-              Open a card to browse.
+          <div class="section-head">
+            <p class="section-kicker">Portfolio</p>
+            <h2 class="section-heading-serif">Work samples, structured the way real businesses need.</h2>
+            <p class="section-lead section-lead--wide">
+              Each card opens a live example: personal brand, retail-style landing, restaurant, event, software
+              marketing, plus Study Hatch, a live learning platform.
             </p>
           </div>
           <div class="projects-grid">
@@ -153,16 +180,22 @@
               target="_blank"
               rel="noopener"
             >
-              <img
-                src="Asset/NV.png"
-                alt="Personal brand website design for small business owners"
-                loading="lazy"
-              />
+              <div class="project-card-media">
+                <img
+                  src="Asset/NV.png"
+                  alt="Personal brand website design for small business owners"
+                  loading="lazy"
+                />
+              </div>
               <div class="project-body">
-                <h4>Personal brand page</h4>
-                <p>One scroll. Headline, story, contact.</p>
-                <p>Strong fit for coaches and creators.</p>
-                <span class="tech">HTML • CSS • JavaScript</span>
+                <h3 class="project-title">Personal brand page</h3>
+                <p class="project-desc">One scroll with headline, story, and contact. Strong fit for coaches and creators.</p>
+                <div class="tech-chips">
+                  <span class="tech-chip">HTML</span>
+                  <span class="tech-chip">CSS</span>
+                  <span class="tech-chip">JavaScript</span>
+                </div>
+                <span class="project-cta">View project <span class="project-arrow" aria-hidden="true">→</span></span>
               </div>
             </a>
             <a
@@ -171,16 +204,22 @@
               target="_blank"
               rel="noopener"
             >
-              <img
-                src="Asset/NS.png"
-                alt="Product landing page for retail and service businesses"
-                loading="lazy"
-              />
+              <div class="project-card-media">
+                <img
+                  src="Asset/NS.png"
+                  alt="Product landing page for retail and service businesses"
+                  loading="lazy"
+                />
+              </div>
               <div class="project-body">
-                <h4>Product landing page</h4>
-                <p>Offers, features, clear buy paths.</p>
-                <p>Good for a flagship product or service.</p>
-                <span class="tech">HTML • CSS • JavaScript</span>
+                <h3 class="project-title">Product landing page</h3>
+                <p class="project-desc">Offers, features, and clear buy paths for a flagship product or service.</p>
+                <div class="tech-chips">
+                  <span class="tech-chip">HTML</span>
+                  <span class="tech-chip">CSS</span>
+                  <span class="tech-chip">JavaScript</span>
+                </div>
+                <span class="project-cta">View project <span class="project-arrow" aria-hidden="true">→</span></span>
               </div>
             </a>
             <a
@@ -189,16 +228,18 @@
               target="_blank"
               rel="noopener"
             >
-              <img
-                src="Asset/EO.png"
-                alt="Restaurant website with menu and hours"
-                loading="lazy"
-              />
+              <div class="project-card-media">
+                <img src="Asset/EO.png" alt="Restaurant website with menu and hours" loading="lazy" />
+              </div>
               <div class="project-body">
-                <h4>Restaurant site</h4>
-                <p>Menu, hours, location, order or visit prompts.</p>
-                <p>Built for phones in hand.</p>
-                <span class="tech">HTML • CSS • JavaScript</span>
+                <h3 class="project-title">Restaurant site</h3>
+                <p class="project-desc">Menu, hours, location, and prompts to order or visit, tuned for phones in hand.</p>
+                <div class="tech-chips">
+                  <span class="tech-chip">HTML</span>
+                  <span class="tech-chip">CSS</span>
+                  <span class="tech-chip">JavaScript</span>
+                </div>
+                <span class="project-cta">View project <span class="project-arrow" aria-hidden="true">→</span></span>
               </div>
             </a>
             <a
@@ -207,16 +248,18 @@
               target="_blank"
               rel="noopener"
             >
-              <img
-                src="Asset/EH.png"
-                alt="Event website with schedule and registration"
-                loading="lazy"
-              />
+              <div class="project-card-media">
+                <img src="Asset/EH.png" alt="Event website with schedule and registration" loading="lazy" />
+              </div>
               <div class="project-body">
-                <h4>Event page</h4>
-                <p>Schedule, speakers, sign up blocks.</p>
-                <p>For workshops, fundraisers, openings.</p>
-                <span class="tech">HTML • CSS • JavaScript</span>
+                <h3 class="project-title">Event page</h3>
+                <p class="project-desc">Schedule, speakers, and sign-up blocks for workshops, fundraisers, and openings.</p>
+                <div class="tech-chips">
+                  <span class="tech-chip">HTML</span>
+                  <span class="tech-chip">CSS</span>
+                  <span class="tech-chip">JavaScript</span>
+                </div>
+                <span class="project-cta">View project <span class="project-arrow" aria-hidden="true">→</span></span>
               </div>
             </a>
             <a
@@ -225,293 +268,331 @@
               target="_blank"
               rel="noopener"
             >
-              <img
-                src="Asset/PF.png"
-                alt="Software and SaaS marketing website"
-                loading="lazy"
-              />
+              <div class="project-card-media">
+                <img src="Asset/PF.png" alt="Software and SaaS marketing website" loading="lazy" />
+              </div>
               <div class="project-body">
-                <h4>Software marketing page</h4>
-                <p>Product story, proof, pricing, signup.</p>
-                <p>For apps and subscriptions.</p>
-                <span class="tech">HTML • CSS • JavaScript</span>
+                <h3 class="project-title">Software marketing page</h3>
+                <p class="project-desc">Product story, proof, pricing, and signup flow for apps and subscriptions.</p>
+                <div class="tech-chips">
+                  <span class="tech-chip">HTML</span>
+                  <span class="tech-chip">CSS</span>
+                  <span class="tech-chip">JavaScript</span>
+                </div>
+                <span class="project-cta">View project <span class="project-arrow" aria-hidden="true">→</span></span>
               </div>
             </a>
-            <a
-              class="glass-card project-card"
-              href="https://studyhatch.org/"
-              target="_blank"
-              rel="noopener"
-            >
-              <img
-                src="Asset/StudyHatch.png"
-                alt="Study Hatch learning platform website built with Next.js"
-                loading="lazy"
-              />
+            <a class="glass-card project-card" href="https://studyhatch.org/" target="_blank" rel="noopener">
+              <div class="project-card-media">
+                <img
+                  src="Asset/StudyHatch.png"
+                  alt="Study Hatch learning platform website built with Next.js"
+                  loading="lazy"
+                />
+              </div>
               <div class="project-body">
-                <h4>Study Hatch</h4>
-                <p>Live learning platform with AI chat and multiplayer, piloted in two school districts.</p>
-                <p>Shows I can handle more advanced builds when needed.</p>
-                <span class="tech">Next.js 14 • React • TypeScript • Tailwind CSS • Node.js • Vercel</span>
+                <h3 class="project-title">Study Hatch</h3>
+                <p class="project-desc">
+                  Live learning platform with AI chat and multiplayer, piloted in two school districts, for when a
+                  build needs more depth.
+                </p>
+                <div class="tech-chips">
+                  <span class="tech-chip">Next.js 14</span>
+                  <span class="tech-chip">React</span>
+                  <span class="tech-chip">TypeScript</span>
+                  <span class="tech-chip">Tailwind</span>
+                  <span class="tech-chip">Node</span>
+                  <span class="tech-chip">Vercel</span>
+                </div>
+                <span class="project-cta">View project <span class="project-arrow" aria-hidden="true">→</span></span>
               </div>
             </a>
           </div>
         </div>
       </section>
+
+      <div class="section-rule" role="presentation"></div>
 
       <section id="services" class="services section">
         <div class="container">
-          <div class="section-title">
-            <h2><span class="section-title-emoji">🛠️</span> Services <span class="section-title-emoji">⚙️</span></h2>
-            <p class="section-lead">
-              New sites and redesigns for small businesses with a clear scope, so people find what they need and know
-              what to do next.
+          <div class="section-head section-head--center">
+            <p class="section-kicker">Services</p>
+            <h2 class="section-heading-serif">The small business website system.</h2>
+            <p class="section-lead section-lead--center">
+              Seven parts, one clear scope: strategy through launch, with honest SEO language and optional ongoing care.
             </p>
           </div>
-          <div class="services-grid">
+          <div class="services-grid services-grid--seven">
             <article class="glass-card service-card">
-              <div class="icon">🌐</div>
-              <h3>Sites that work</h3>
-              <p>Mobile first, fast load, and clear info on who you are, where you are, and how to reach you.</p>
+              <p class="service-index">01</p>
+              <h3 class="service-title">Strategy and structure</h3>
+              <p class="service-copy">Sitemap thinking, page goals, and messaging hierarchy so visitors know where to go.</p>
             </article>
             <article class="glass-card service-card">
-              <div class="icon">💵</div>
-              <h3>Affordable web design</h3>
-              <p>Fixed package for local owners. Optional SEO add on.</p>
-              <p>No ranking promises. Just clean titles and basics.</p>
+              <p class="service-index">02</p>
+              <h3 class="service-title">Mobile-first design</h3>
+              <p class="service-copy">Layouts that read well on phones first, then scale up cleanly for desktop.</p>
             </article>
             <article class="glass-card service-card">
-              <div class="icon">📱</div>
-              <h3>Clear next steps</h3>
-              <p>Call buttons, short forms, booking links.</p>
-              <p>Simple menus. No maze.</p>
+              <p class="service-index">03</p>
+              <h3 class="service-title">Clean development</h3>
+              <p class="service-copy">Hand-built pages with performance in mind, readable code, and sensible structure.</p>
             </article>
             <article class="glass-card service-card">
-              <div class="icon">🔧</div>
-              <h3>Launch and handoff</h3>
-              <p>I walk you through the live site.</p>
-              <p>Help with domain and hosting. Monthly care optional.</p>
+              <p class="service-index">04</p>
+              <h3 class="service-title">Contact forms and CTAs</h3>
+              <p class="service-copy">Calls, short forms, booking links, and clear next steps without a maze of clicks.</p>
+            </article>
+            <article class="glass-card service-card">
+              <p class="service-index">05</p>
+              <h3 class="service-title">SEO basics</h3>
+              <p class="service-copy">Titles, meta descriptions, and on-page hygiene. No ranking guarantees, just a solid baseline.</p>
+            </article>
+            <article class="glass-card service-card">
+              <p class="service-index">06</p>
+              <h3 class="service-title">Launch and handoff</h3>
+              <p class="service-copy">Walkthrough of the live site, domain and hosting guidance, and a clean handoff.</p>
+            </article>
+            <article class="glass-card service-card">
+              <p class="service-index">07</p>
+              <h3 class="service-title">Optional hosting care</h3>
+              <p class="service-copy">Lightweight monthly help if you want a steady hand after launch, not a lock-in.</p>
             </article>
           </div>
         </div>
       </section>
 
-      <section id="cta" class="cta-strip section" aria-labelledby="cta-heading">
-        <div class="container">
-          <div class="glass-card cta-strip-inner">
-            <h2 id="cta-heading">Tell me what you need</h2>
-            <p class="section-lead cta-strip-lead">
-              Send your business, your city, and what you want visitors to do. I usually answer within one business day.
-            </p>
-            <div class="hero-actions cta-strip-actions">
-              <a class="btn primary" href="#contact">Email me the details</a>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div class="section-rule" role="presentation"></div>
 
       <section id="education-experience" class="education-experience section">
         <div class="container">
-          <div class="section-title">
-            <h2><span class="section-title-emoji">📚</span> Background <span class="section-title-emoji">🎓</span></h2>
-            <p class="section-lead">
-              Self taught, and I keep building and learning on real projects.
+          <div class="section-head section-head--center">
+            <p class="section-kicker">Background</p>
+            <h2 class="section-heading-serif">Self-taught, project-driven, still learning.</h2>
+            <p class="section-lead section-lead--center">
+              Certificates below are the core web stack. The rest comes from shipping real client work and larger apps
+              when the job calls for it.
             </p>
           </div>
           <div class="edu-exp-grid">
             <article class="glass-card edu-exp-card">
-              <h3>What I do</h3>
+              <h3 class="edu-card-title">What I do</h3>
               <h4>Independent developer</h4>
-              <p>I ship small business sites and larger apps when the job needs it.</p>
+              <p>I ship small business sites and larger applications when the scope requires it.</p>
               <p>HTML, CSS, JavaScript, TypeScript, React, Next.js, Node, Tailwind, Vercel.</p>
-              <p>I write code you or the next dev can open later.</p>
+              <p>I write code you or the next developer can open later without guessing.</p>
             </article>
             <article class="glass-card edu-exp-card">
-              <h3>How I learned</h3>
+              <h3 class="edu-card-title">How I learned</h3>
               <h4>Courses plus real projects</h4>
-              <p>Started with structured courses including Mimo. Still studying.</p>
-              <p>Focus lately:</p>
+              <p>Structured courses including Mimo, plus continuous study alongside client work.</p>
+              <p>Recent focus:</p>
               <ul>
                 <li>Servers and data</li>
-                <li>Keeping apps maintainable</li>
-                <li>Deploy and ship</li>
+                <li>Maintainable application structure</li>
+                <li>Deploy and ship with confidence</li>
               </ul>
             </article>
           </div>
           <div class="certifications-block">
-            <h3 class="certifications-heading"><span class="section-title-emoji">🏅</span> Certifications <span class="section-title-emoji">📜</span></h3>
-            <p class="section-lead certifications-lead">
-              Core web certs below.
-            </p>
-            <div class="certifications-grid">
-              <div class="certification-card glass-card">
-                <button type="button" class="certification-trigger" aria-label="View larger CSS certification">
-                  <img src="Asset/CSS.png" alt="CSS certification" loading="lazy" />
-                </button>
-              </div>
-              <div class="certification-card glass-card">
-                <button type="button" class="certification-trigger" aria-label="View larger front-end development certification">
-                  <img src="Asset/FrontEnd.png" alt="Front-end development certification" loading="lazy" />
-                </button>
-              </div>
-              <div class="certification-card glass-card">
-                <button type="button" class="certification-trigger" aria-label="View larger HTML certification">
-                  <img src="Asset/HTML.png" alt="HTML certification" loading="lazy" />
-                </button>
-              </div>
-              <div class="certification-card glass-card">
-                <button type="button" class="certification-trigger" aria-label="View larger JavaScript certification">
-                  <img src="Asset/JavaScript.png" alt="JavaScript certification" loading="lazy" />
-                </button>
-              </div>
-              <div class="certification-card glass-card">
-                <button type="button" class="certification-trigger" aria-label="View larger React certification">
-                  <img src="Asset/React.png" alt="React certification" loading="lazy" />
-                </button>
+            <h3 class="certifications-heading">Certifications</h3>
+            <p class="section-lead certifications-lead">Core web credentials.</p>
+            <div class="cert-marquee" role="region" aria-label="Certifications carousel">
+              <div class="cert-marquee-track">
+                <div class="cert-marquee-group">
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" aria-label="View larger CSS certification">
+                      <img src="Asset/CSS.png" alt="CSS certification" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" aria-label="View larger front-end development certification">
+                      <img src="Asset/FrontEnd.png" alt="Front-end development certification" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" aria-label="View larger HTML certification">
+                      <img src="Asset/HTML.png" alt="HTML certification" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" aria-label="View larger JavaScript certification">
+                      <img src="Asset/JavaScript.png" alt="JavaScript certification" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" aria-label="View larger React certification">
+                      <img src="Asset/React.png" alt="React certification" loading="lazy" />
+                    </button>
+                  </div>
+                </div>
+                <div class="cert-marquee-group cert-marquee-group--clone" aria-hidden="true">
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger CSS certification">
+                      <img src="Asset/CSS.png" alt="" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger front-end development certification">
+                      <img src="Asset/FrontEnd.png" alt="" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger HTML certification">
+                      <img src="Asset/HTML.png" alt="" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger JavaScript certification">
+                      <img src="Asset/JavaScript.png" alt="" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger React certification">
+                      <img src="Asset/React.png" alt="" loading="lazy" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Testimonials / client reviews (hidden for now)
-      <section id="testimonials" class="testimonials section">
-        <div class="container">
-          <div class="section-title">
-            <h2><span class="section-title-emoji">⭐</span> Client reviews <span class="section-title-emoji">💬</span></h2>
-            <p class="section-lead">
-              Only real clients. No fake quotes.
-            </p>
-            <p class="section-lead">
-              Be the first Texas small business on the list.
-            </p>
-          </div>
-          <div class="testimonial-tabs">
-            <button type="button" class="testimonial-tab active" data-tab="real">Reviews</button>
-            <button type="button" class="testimonial-tab" data-tab="leave">Leave a review</button>
-          </div>
-          <div class="testimonial-panel active" id="testimonials-real">
-            <div class="real-reviews-list"></div>
-            <p class="real-reviews-empty">No reviews yet. After we wrap, leave a few words if you want.</p>
-          </div>
-          <div class="testimonial-panel" id="testimonials-leave">
-            <form class="review-form glass-card">
-              <div class="field">
-                <label for="review-name">Your name</label>
-                <input id="review-name" name="name" type="text" placeholder="Your name" required />
-              </div>
-              <div class="field">
-                <label for="review-email">Email (optional)</label>
-                <input id="review-email" name="email" type="email" placeholder="you@email.com" />
-              </div>
-              <div class="field">
-                <label>Rating (1 to 5 stars)</label>
-                <div class="star-rating" aria-label="Rate 1 to 5 stars">
-                  <button type="button" class="star" data-value="1" aria-label="1 star">★</button>
-                  <button type="button" class="star" data-value="2" aria-label="2 stars">★</button>
-                  <button type="button" class="star" data-value="3" aria-label="3 stars">★</button>
-                  <button type="button" class="star" data-value="4" aria-label="4 stars">★</button>
-                  <button type="button" class="star" data-value="5" aria-label="5 stars">★</button>
-                </div>
-                <input type="hidden" name="rating" id="review-rating" value="0" required />
-              </div>
-              <div class="field">
-                <label for="review-message">Your review</label>
-                <textarea id="review-message" name="message" rows="4" placeholder="Share your experience..." required></textarea>
-              </div>
-              <button type="submit" class="btn primary">Submit review</button>
-            </form>
-          </div>
-        </div>
-      </section>
-      -->
+      <div class="section-rule" role="presentation"></div>
 
       <section id="payments" class="payments section">
         <div class="container">
-          <div class="section-title">
-            <h2><span class="section-title-emoji">💰</span> Pricing &amp; payments <span class="section-title-emoji">💵</span></h2>
-            <p class="section-lead">
-              One business site package. Clear price. No surprise line items.
+          <div class="section-head section-head--center">
+            <p class="section-kicker">Pricing and payments</p>
+            <h2 class="section-heading-serif">One package, one total, no surprise line items.</h2>
+            <p class="section-lead section-lead--center">
+              You review the site before payment. Once paid in full, you own it. Optional add-ons are spelled out below.
             </p>
           </div>
-          <div class="business-offer glass-card">
-            <h3 class="business-offer-title">Business website package</h3>
-            <p class="business-offer-price">Total: <strong>$799.99</strong> (one-time)</p>
-            <ul class="payment-terms-list">
-              <li>$799.99 USD for the agreed scope</li>
-              <li>You review the site before payment. Once paid in full, you own it.</li>
-            </ul>
-            <ul class="payment-terms-list payment-terms-notes">
-              <li>Non-refundable after work starts.</li>
-              <li>Missed payments can pause work.</li>
-            </ul>
-            <p class="seo-add-on">
-              <strong>Optional SEO setup:</strong> $99.99. Titles, meta, on page basics. No ranking promises.
-            </p>
-          </div>
-          <div class="delivery-note glass-card">
-            <h3>Timeline</h3>
-            <p>Most sites ship in <strong>7 to 14 days</strong> if:</p>
-            <ul class="delivery-factors">
-              <li>You answer fast</li>
-              <li>Copy and photos show up on time</li>
-              <li>Revisions stay in scope</li>
-            </ul>
-            <p>Seven days of silence may mean I pause until you're back.</p>
-            <p>Put approvals and changes in writing.</p>
-          </div>
-          <div class="how-it-works glass-card">
-            <h3>Start here</h3>
-            <p>
-              Use the
-              <a class="link-highlight" href="#contact">contact form</a>.
-              Business name, city, pages, sites you like.
-            </p>
-            <p>More detail up front means fewer emails. I confirm scope before I start.</p>
-            <p>
-              Hosting help: <strong>$19.99</strong>/mo or <strong>$199.99</strong>/yr (about 17% off vs monthly). I show progress. Reasonable
-              revisions included.
-            </p>
+          <div class="pricing-layout">
+            <div class="glass-card pricing-hero">
+              <p class="pricing-label">Business website package</p>
+              <p class="pricing-total"><span class="pricing-currency">USD</span> $799.99</p>
+              <p class="pricing-note">One-time, for the agreed scope.</p>
+              <ul class="pricing-list">
+                <li>$799.99 USD for the agreed scope</li>
+                <li>You review the site before payment. Once paid in full, you own it.</li>
+              </ul>
+              <ul class="pricing-list pricing-list--muted">
+                <li>Non-refundable after work starts.</li>
+                <li>Missed payments can pause work.</li>
+              </ul>
+              <div class="pricing-addons">
+                <p><strong>Optional SEO setup:</strong> $99.99. Titles, meta, on-page basics. No ranking promises.</p>
+                <p>
+                  <strong>Hosting help:</strong> $19.99 per month or $199.99 per year (about 17% off compared to monthly).
+                  I show progress along the way. Reasonable revisions stay in scope.
+                </p>
+              </div>
+              <div class="pricing-cta">
+                <a class="btn primary" href="#contact">Start with the contact form</a>
+              </div>
+            </div>
+            <div class="pricing-side">
+              <div class="glass-card pricing-side-card">
+                <h3 class="pricing-side-title">Timeline</h3>
+                <p>Most sites ship in <strong>7 to 14 days</strong> when:</p>
+                <ul class="pricing-mini-list">
+                  <li>You answer questions quickly</li>
+                  <li>Copy and photos arrive on schedule</li>
+                  <li>Revisions stay within scope</li>
+                </ul>
+                <p class="pricing-side-foot">
+                  Seven days of silence may mean I pause until you are back. Put approvals and changes in writing so we
+                  stay aligned.
+                </p>
+              </div>
+              <div class="glass-card pricing-side-card">
+                <h3 class="pricing-side-title">How to start</h3>
+                <p>
+                  Use the <a class="link-highlight" href="#contact">contact form</a> with your business name, city, page
+                  list, and examples you like.
+                </p>
+                <p>More detail up front means fewer back-and-forth emails. I confirm scope before work begins.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
+      <div class="section-rule" role="presentation"></div>
+
       <section id="contact" class="contact section">
         <div class="container contact-grid">
-          <div>
-            <h2><span class="section-title-emoji">📧</span> Contact <span class="section-title-emoji">✉️</span></h2>
-            <p class="section-lead">
-              Tell me what you sell, where you're based, and what the site should do. I reply within about one business
-              day.
+          <div class="contact-intro contact-intro--wide">
+            <p class="section-kicker">Payment options</p>
+            <h2 class="section-heading-serif">Project inquiries</h2>
+            <p class="section-lead section-lead--centered">
+              Tell me what you sell, where you are based, and what the site should do for visitors. I reply within
+              about one business day.
             </p>
-            <form
-              id="contact-form"
-              class="contact-form"
-              action="#"
-              method="get"
-            >
+            <form id="contact-form" class="contact-form" action="#" method="get">
               <input type="hidden" name="type" value="Purchase" />
               <input type="hidden" id="package" name="package" value="Business ($799.99)" />
               <div class="field selected-offer-field">
                 <p class="selected-offer">
-                  You're asking about: <strong>Business website package, $799.99</strong>
+                  You are asking about: <strong>Business website package, $799.99</strong>
                 </p>
+              </div>
+              <div class="payment-section">
+                <h3 class="form-block-title">Payment</h3>
+                <p class="payment-help">
+                  Pay with PayPal or with a card through PayPal (where available). Complete checkout before you send
+                  this inquiry.
+                </p>
+                <p class="payment-config-missing" id="paypal-config-missing" hidden>
+                  Add your public <strong>PayPal Client ID</strong> in <code>script.js</code> as
+                  <code>PAYPAL_CLIENT_ID</code> (never your secret key). Then reload this page.
+                </p>
+                <fieldset class="payment-type-fieldset">
+                  <legend class="payment-type-legend">Payment type</legend>
+                  <label class="payment-radio-label">
+                    <input type="radio" name="pay-type" value="full" checked />
+                    <span>One-time pay in full (<strong>$799.99</strong>)</span>
+                  </label>
+                  <label class="payment-radio-label">
+                    <input type="radio" name="pay-type" value="deposit" />
+                    <span>Deposit to start work (15% of package today: <strong>$120.00</strong>, balance per agreement before launch)</span>
+                  </label>
+                  <label class="payment-radio-label">
+                    <input type="radio" name="pay-type" value="test" />
+                    <span>Test payment (<strong>$0.01</strong>) to confirm checkout with your own card or balance</span>
+                  </label>
+                </fieldset>
+                <div class="field payment-checkbox-field">
+                  <label class="payment-checkbox-label">
+                    <input type="checkbox" id="seo-add-on" name="seo_addon" />
+                    <span>Optional SEO basics add-on (<strong>+$99.99</strong>)</span>
+                  </label>
+                </div>
+                <p class="payment-total" id="payment-total-display" aria-live="polite">Total due today: $799.99 USD</p>
+                <div id="paypal-button-container" class="paypal-button-container"></div>
+                <p class="payment-complete-msg" id="payment-status" hidden>Payment completed. You can send your inquiry.</p>
+                <input type="hidden" id="paypal-paid" name="paypal_paid" value="" autocomplete="off" />
+                <input type="hidden" id="paypal-order-id" name="paypal_order_id" value="" autocomplete="off" />
+                <input type="hidden" id="payment-amount-sent" name="payment_amount_usd" value="" autocomplete="off" />
               </div>
               <div class="field">
                 <label for="name">Name</label>
-                <input id="name" name="name" type="text" placeholder="Your name" required />
+                <input id="name" name="name" type="text" placeholder="Your name" required autocomplete="name" />
               </div>
               <div class="field">
                 <label for="email">Email</label>
-                <input id="email" name="email" type="email" placeholder="you@email.com" required />
+                <input id="email" name="email" type="email" placeholder="you@email.com" required autocomplete="email" />
               </div>
               <div class="field">
                 <label for="subject">Subject</label>
                 <input id="subject" name="subject" type="text" placeholder="e.g. New site for my Dallas plumbing business" required />
               </div>
               <div class="field field-heading">
-                <h3>Details</h3>
-                <p>Pages, must haves, timeline, links you like. Files can follow by email.</p>
+                <h3 class="form-block-title">Details</h3>
+                <p>Pages, must-haves, timeline, and links you like. Files can follow by email.</p>
               </div>
               <div class="field message-field">
                 <label for="message">Message</label>
@@ -522,12 +603,12 @@
                   id="message"
                   name="message"
                   rows="5"
-                  placeholder="Name, city, services, call or book?"
+                  placeholder="Name, city, services, preferred call or booking flow?"
                   aria-describedby="message-paste-hint"
                 ></textarea>
                 <div class="pasted-images-preview" id="contact-pasted-preview"></div>
               </div>
-              <button class="btn primary" type="submit">Send</button>
+              <button class="btn primary" type="submit" id="contact-submit" disabled>Send</button>
             </form>
           </div>
         </div>
@@ -535,20 +616,21 @@
 
       <section id="questions" class="questions section">
         <div class="container">
-          <div class="section-title">
-            <h2><span class="section-title-emoji">❓</span> Quick questions <span class="section-title-emoji">💬</span></h2>
-            <p class="section-lead">
-              Quick question only? Same reply speed as a full inquiry.
+          <div class="section-head section-head--center">
+            <p class="section-kicker">Quick questions</p>
+            <h2 class="section-heading-serif">Short questions, same reply speed.</h2>
+            <p class="section-lead section-lead--center">
+              If you only need a quick answer, use this form. I still aim for about one business day on responses.
             </p>
           </div>
           <form id="questions-form" class="questions-form glass-card">
             <div class="field">
               <label for="q-name">Name</label>
-              <input id="q-name" name="name" type="text" placeholder="Your name" required />
+              <input id="q-name" name="name" type="text" placeholder="Your name" required autocomplete="name" />
             </div>
             <div class="field">
               <label for="q-email">Email</label>
-              <input id="q-email" name="email" type="email" placeholder="you@email.com" required />
+              <input id="q-email" name="email" type="email" placeholder="you@email.com" required autocomplete="email" />
             </div>
             <div class="field">
               <label for="q-subject">Subject</label>
@@ -594,11 +676,45 @@
     </div>
 
     <footer class="site-footer">
-      <div class="container footer-inner">
-        <p>© 2026 Derek's Website Services. Small business websites, Dallas area.</p>
-        <a class="back-to-top" href="#home">Back to top ↑</a>
+      <div class="container footer-grid">
+        <div class="footer-brand">
+          <a class="footer-logo" href="#home">
+            <img src="Asset/DWS.png" alt="" width="40" height="40" />
+            <span>Derek's Website Services</span>
+          </a>
+          <p class="footer-tagline">
+            Small business websites with clear scope, calm communication, and launch-ready polish.
+          </p>
+        </div>
+        <div class="footer-col">
+          <p class="footer-heading">Navigate</p>
+          <ul class="footer-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#projects">Portfolio</a></li>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#education-experience">Background</a></li>
+            <li><a href="#payments">Payment options</a></li>
+            <li><a href="#questions">Quick questions</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <p class="footer-heading">Sections</p>
+          <ul class="footer-links">
+            <li><a href="#projects">Portfolio</a></li>
+            <li><a href="#services">The system</a></li>
+            <li><a href="#payments">Pricing</a></li>
+            <li><a href="#contact">Project form</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="container footer-bottom">
+        <p class="footer-copy">© 2026 Derek's Website Services. Dallas area and remote-friendly.</p>
+        <a class="back-to-top" href="#home">Back to top</a>
       </div>
     </footer>
+
+    <a href="#contact" class="btn primary fab-service">Request a service</a>
 
     <script src="script.js"></script>
   </body>

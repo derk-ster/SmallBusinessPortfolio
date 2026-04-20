@@ -1,5 +1,7 @@
 const navToggle = document.querySelector(".nav-toggle");
 const nav = document.querySelector(".nav");
+const themeToggle = document.getElementById("theme-toggle");
+const THEME_STORAGE_KEY = "dws-theme";
 
 if ("scrollRestoration" in history) {
   history.scrollRestoration = "manual";
@@ -9,12 +11,67 @@ window.addEventListener("load", () => {
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
 });
 
-navToggle.addEventListener("click", () => {
-  nav.classList.toggle("open");
-});
+function readStoredTheme() {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function systemPrefersDark() {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function applyDocumentTheme(theme) {
+  if (theme !== "light" && theme !== "dark") return;
+  document.documentElement.setAttribute("data-theme", theme);
+  if (themeToggle) {
+    themeToggle.setAttribute("aria-pressed", theme === "dark");
+  }
+  window.dispatchEvent(new CustomEvent("dws-themechange", { detail: { theme } }));
+}
+
+function resolveThemeForInit() {
+  const stored = readStoredTheme();
+  if (stored === "light" || stored === "dark") return stored;
+  return systemPrefersDark() ? "dark" : "light";
+}
+
+function initThemeControls() {
+  applyDocumentTheme(resolveThemeForInit());
+
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener("change", () => {
+    if (readStoredTheme()) return;
+    applyDocumentTheme(systemPrefersDark() ? "dark" : "light");
+  });
+
+  themeToggle?.addEventListener("click", () => {
+    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      /* ignore quota / private mode */
+    }
+    applyDocumentTheme(next);
+  });
+}
+
+initThemeControls();
+
+if (navToggle && nav) {
+  navToggle.addEventListener("click", () => {
+    const open = nav.classList.toggle("open");
+    navToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+}
 
 document.querySelectorAll(".nav a").forEach((link) => {
-  link.addEventListener("click", () => nav.classList.remove("open"));
+  link.addEventListener("click", () => {
+    nav?.classList.remove("open");
+    if (navToggle) navToggle.setAttribute("aria-expanded", "false");
+  });
 });
 
 /** Same-page #anchors: smooth scroll without global `scroll-behavior` (keeps wheel/trackpad scrolling snappy). */
@@ -38,7 +95,7 @@ document.addEventListener("click", (e) => {
 });
 
 const fadeItems = document.querySelectorAll(
-  ".section, .about-image, .service-card, .edu-exp-card, .certification-card, .contact-form, .questions-form, .project-card, .cta-strip, .real-review-card"
+  ".section, .about-image, .service-card, .edu-exp-card, .certification-card, .contact-form, .questions-form, .project-card, .real-review-card"
 );
 const observer = new IntersectionObserver(
   (entries) => {
@@ -400,6 +457,213 @@ const EMAILJS_PUBLIC_KEY = "PddgpwiLVVx0vkkdC";
 const EMAILJS_CONFIGURED =
   EMAILJS_TEMPLATE_ID !== "YOUR_TEMPLATE_ID" && EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY";
 
+/**
+ * PayPal: public Client ID only (Dashboard → Apps & credentials → REST app → Client ID).
+ * Never put your Secret in frontend code or in git. Rotate any secret that was ever pasted into chat or a repo.
+ */
+const PAYPAL_CLIENT_ID =
+  "Abr8c6s2_RpxufN0Vee0NAlucuTdDqLtD-1n7RWfYum6JUiveffcvQHNAml--T0fJmRwVUt07zBa8Zq-";
+
+const PAYPAL_PRICE_FULL = 799.99;
+const PAYPAL_PRICE_SEO = 99.99;
+const PAYPAL_DEPOSIT = Math.round(PAYPAL_PRICE_FULL * 0.15 * 100) / 100;
+/** Smallest USD test charge PayPal usually allows. Raise to 1.00 if your account rejects $0.01. */
+const PAYPAL_TEST_AMOUNT = 0.01;
+
+let paypalSdkPromise = null;
+let paypalButtonsInstance = null;
+
+function computePayPalTotals() {
+  const mode = document.querySelector('input[name="pay-type"]:checked')?.value || "full";
+  if (mode === "test") {
+    const amt = PAYPAL_TEST_AMOUNT;
+    return { mode: "test", seo: false, base: amt, total: amt, seoPart: 0 };
+  }
+  const seo = !!document.getElementById("seo-add-on")?.checked;
+  const base = mode === "deposit" ? PAYPAL_DEPOSIT : PAYPAL_PRICE_FULL;
+  const seoPart = seo ? PAYPAL_PRICE_SEO : 0;
+  const total = Math.round((base + seoPart) * 100) / 100;
+  return { mode, seo, base, total, seoPart };
+}
+
+function updatePackageHiddenField() {
+  const p = document.getElementById("package");
+  if (!p) return;
+  const t = computePayPalTotals();
+  if (t.mode === "test") {
+    p.value = `Checkout test · $${PAYPAL_TEST_AMOUNT.toFixed(2)}`;
+    return;
+  }
+  const bits = ["Business website package"];
+  bits.push(t.mode === "deposit" ? `deposit $${PAYPAL_DEPOSIT.toFixed(2)}` : `full $${PAYPAL_PRICE_FULL.toFixed(2)}`);
+  if (t.seo) bits.push(`SEO +$${PAYPAL_PRICE_SEO.toFixed(2)}`);
+  p.value = bits.join(" · ");
+}
+
+function updatePaymentTotalDisplay() {
+  const el = document.getElementById("payment-total-display");
+  const t = computePayPalTotals();
+  if (el) el.textContent = `Total due today: $${t.total.toFixed(2)} USD`;
+  updatePackageHiddenField();
+}
+
+function setContactPaymentComplete(orderId, amountStr) {
+  const paid = document.getElementById("paypal-paid");
+  const oid = document.getElementById("paypal-order-id");
+  const amt = document.getElementById("payment-amount-sent");
+  const btn = document.getElementById("contact-submit");
+  const status = document.getElementById("payment-status");
+  if (paid) paid.value = "yes";
+  if (oid) oid.value = orderId || "";
+  if (amt) amt.value = amountStr || "";
+  if (btn) btn.disabled = false;
+  if (status) status.hidden = false;
+}
+
+function clearContactPaymentState() {
+  const paid = document.getElementById("paypal-paid");
+  const oid = document.getElementById("paypal-order-id");
+  const amt = document.getElementById("payment-amount-sent");
+  const btn = document.getElementById("contact-submit");
+  const status = document.getElementById("payment-status");
+  if (paid) paid.value = "";
+  if (oid) oid.value = "";
+  if (amt) amt.value = "";
+  if (btn) btn.disabled = true;
+  if (status) status.hidden = true;
+}
+
+function destroyPayPalButtons() {
+  if (paypalButtonsInstance) {
+    try {
+      paypalButtonsInstance.close();
+    } catch (_) {
+      /* PayPal SDK may throw if already closed */
+    }
+    paypalButtonsInstance = null;
+  }
+  const c = document.getElementById("paypal-button-container");
+  if (c) c.innerHTML = "";
+}
+
+function loadPayPalSdk() {
+  if (!PAYPAL_CLIENT_ID) return Promise.reject(new Error("PayPal Client ID not set"));
+  if (window.paypal) return Promise.resolve();
+  if (paypalSdkPromise) return paypalSdkPromise;
+  paypalSdkPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(PAYPAL_CLIENT_ID)}&currency=USD&intent=capture&disable-funding=paylater`;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => {
+      paypalSdkPromise = null;
+      reject(new Error("PayPal SDK failed to load"));
+    };
+    document.head.appendChild(s);
+  });
+  return paypalSdkPromise;
+}
+
+function renderContactPayPalButtons() {
+  const container = document.getElementById("paypal-button-container");
+  const missing = document.getElementById("paypal-config-missing");
+  if (!container) return;
+
+  destroyPayPalButtons();
+  clearContactPaymentState();
+
+  if (!PAYPAL_CLIENT_ID) {
+    if (missing) missing.hidden = false;
+    return;
+  }
+  if (missing) missing.hidden = true;
+
+  loadPayPalSdk()
+    .then(() => {
+      if (!window.paypal || typeof window.paypal.Buttons !== "function") return;
+      paypalButtonsInstance = window.paypal.Buttons({
+        style: {
+          layout: "vertical",
+          shape: "rect",
+          color: "black",
+          borderRadius: 12,
+          tagline: false,
+        },
+        createOrder(_data, actions) {
+          const t = computePayPalTotals();
+          const description =
+            t.mode === "test"
+              ? "Derek's Website Services - checkout test"
+              : t.mode === "deposit"
+                ? "Derek's Website Services - project deposit"
+                : "Derek's Website Services - website package";
+          return actions.order.create({
+            purchase_units: [
+              {
+                description,
+                amount: {
+                  currency_code: "USD",
+                  value: t.total.toFixed(2),
+                },
+              },
+            ],
+          });
+        },
+        onApprove(_data, actions) {
+          return actions.order.capture().then((details) => {
+            const id = details?.id || "";
+            const amt = computePayPalTotals().total.toFixed(2);
+            setContactPaymentComplete(id, amt);
+          });
+        },
+        onError(err) {
+          console.error(err);
+          alert("PayPal could not complete. Check the console or try again.");
+        },
+      });
+      return paypalButtonsInstance.render("#paypal-button-container");
+    })
+    .catch((err) => {
+      console.error(err);
+      if (missing) missing.hidden = false;
+    });
+}
+
+function syncSeoWithPayMode() {
+  const mode = document.querySelector('input[name="pay-type"]:checked')?.value;
+  const seo = document.getElementById("seo-add-on");
+  const wrap = document.querySelector(".payment-checkbox-field");
+  if (!seo) return;
+  if (mode === "test") {
+    seo.checked = false;
+    seo.disabled = true;
+    wrap?.classList.add("payment-checkbox-field--disabled");
+  } else {
+    seo.disabled = false;
+    wrap?.classList.remove("payment-checkbox-field--disabled");
+  }
+}
+
+function initContactPayPalSection() {
+  const form = document.getElementById("contact-form");
+  if (!form) return;
+  syncSeoWithPayMode();
+  updatePaymentTotalDisplay();
+  document.querySelectorAll('input[name="pay-type"]').forEach((el) => {
+    el.addEventListener("change", () => {
+      syncSeoWithPayMode();
+      updatePaymentTotalDisplay();
+      renderContactPayPalButtons();
+    });
+  });
+  const seo = document.getElementById("seo-add-on");
+  seo?.addEventListener("change", () => {
+    updatePaymentTotalDisplay();
+    renderContactPayPalButtons();
+  });
+  renderContactPayPalButtons();
+}
+
 /** EmailJS rejects with { status, text } — surface it so you can fix the dashboard. */
 function formatEmailJsError(err) {
   if (err == null) return "";
@@ -536,11 +800,17 @@ function sendEmail(templateParams) {
 
 const contactForm = document.getElementById("contact-form");
 if (contactForm) {
+  initContactPayPalSection();
+
   contactForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const remaining = getFormCooldownRemainingMs();
     if (remaining > 0) {
       showCooldownModal();
+      return;
+    }
+    if (document.getElementById("paypal-paid")?.value !== "yes") {
+      alert("Complete payment with PayPal (balance or card where offered) before sending your inquiry.");
       return;
     }
     const packageVal = document.getElementById("package")?.value || "";
@@ -553,6 +823,7 @@ if (contactForm) {
       alert("Please enter a message or paste at least one image.");
       return;
     }
+    const payTotals = computePayPalTotals();
     const emailSubject = "[PURCHASE] " + (packageVal ? packageVal + " - " : "") + subject;
     const templateParams = {
       type: "Purchase",
@@ -562,6 +833,10 @@ if (contactForm) {
       subject: emailSubject,
       message: message,
       to_email: NOTIFICATION_INBOX,
+      paypal_order_id: document.getElementById("paypal-order-id")?.value || "",
+      payment_amount_usd: document.getElementById("payment-amount-sent")?.value || "",
+      pay_type: payTotals.mode,
+      seo_addon: payTotals.seo ? "yes" : "no",
       ...buildPastedImageTemplateParams("contact"),
     };
     sendEmail(templateParams)
@@ -569,6 +844,14 @@ if (contactForm) {
         setFormCooldown();
         clearPastedImages("contact", "contact-pasted-preview");
         contactForm.reset();
+        const fullRadio = document.querySelector('input[name="pay-type"][value="full"]');
+        if (fullRadio) fullRadio.checked = true;
+        const seoCb = document.getElementById("seo-add-on");
+        if (seoCb) seoCb.checked = false;
+        syncSeoWithPayMode();
+        clearContactPaymentState();
+        updatePaymentTotalDisplay();
+        renderContactPayPalButtons();
         showMessageSentModal();
       })
       .catch((err) => {
@@ -731,12 +1014,20 @@ if (questionsForm) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
+  function dotRgbChannels() {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue("--dot-rgb").trim();
+    const parts = raw.split(",").map((s) => Number.parseFloat(s.trim()));
+    if (parts.length === 3 && parts.every((n) => Number.isFinite(n))) return parts;
+    return [201, 169, 98];
+  }
+
   function drawStatic() {
     const cw = container.clientWidth;
     const ch = container.clientHeight;
     if (positions.length === 0 || cw < 1 || ch < 1) return;
     ctx.clearRect(0, 0, cw, ch);
-    const fill = "rgba(244, 245, 251, 0.12)";
+    const [r, g, b] = dotRgbChannels();
+    const fill = `rgba(${r}, ${g}, ${b}, 0.11)`;
     for (let i = 0; i < positions.length; i++) {
       const { x, y } = positions[i];
       ctx.beginPath();
@@ -829,9 +1120,10 @@ if (questionsForm) {
           const r = radii[i];
           const glow = (r - baseRadius) / (maxRadius - baseRadius);
           const a = 0.1 + Math.min(1, Math.max(0, glow)) * 0.14;
+          const [dr, dg, db] = dotRgbChannels();
           ctx.beginPath();
           ctx.arc(x, y, r, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(244, 245, 251, ${a})`;
+          ctx.fillStyle = `rgba(${dr}, ${dg}, ${db}, ${a})`;
           ctx.fill();
         }
       }
@@ -870,4 +1162,15 @@ if (questionsForm) {
   });
 
   rebuild();
+
+  window.addEventListener("dws-themechange", () => {
+    stopLoop();
+    if (reduceMotion) {
+      drawStatic();
+    } else if (fieldVisible) {
+      startLoop();
+    } else {
+      drawStatic();
+    }
+  });
 })();
