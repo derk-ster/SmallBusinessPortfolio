@@ -619,9 +619,14 @@ const EMAILJS_CONFIGURED =
 const PAYPAL_CLIENT_ID =
   "Abr8c6s2_RpxufN0Vee0NAlucuTdDqLtD-1n7RWfYum6JUiveffcvQHNAml--T0fJmRwVUt07zBa8Zq-";
 
-const PAYPAL_PRICE_FULL = 799.99;
+// Regular (pre-discount) package price. The 15% deposit is ALWAYS computed
+// from this, even when the one-time-pay-in-full option is discounted.
+const PAYPAL_PRICE_REGULAR = 799.99;
+const PAYPAL_FULL_DISCOUNT = 150;
+const PAYPAL_PRICE_FULL = Math.round((PAYPAL_PRICE_REGULAR - PAYPAL_FULL_DISCOUNT) * 100) / 100;
+const PAYPAL_FULL_DISCOUNT_PCT = Math.round((PAYPAL_FULL_DISCOUNT / PAYPAL_PRICE_REGULAR) * 10000) / 100;
 const PAYPAL_PRICE_SEO = 99.99;
-const PAYPAL_DEPOSIT = Math.round(PAYPAL_PRICE_FULL * 0.15 * 100) / 100;
+const PAYPAL_DEPOSIT = Math.round(PAYPAL_PRICE_REGULAR * 0.15 * 100) / 100;
 // $1.00 is above PayPal's per-transaction fee floor so the payment actually
 // clears and appears in your PayPal activity (a $0.01 charge is entirely eaten
 // by fees and will not show a balance or a visible bank statement line).
@@ -652,7 +657,13 @@ function updatePackageHiddenField() {
     return;
   }
   const bits = ["Business website package"];
-  bits.push(t.mode === "deposit" ? `deposit $${PAYPAL_DEPOSIT.toFixed(2)}` : `full $${PAYPAL_PRICE_FULL.toFixed(2)}`);
+  if (t.mode === "deposit") {
+    bits.push(`deposit $${PAYPAL_DEPOSIT.toFixed(2)} (15% of regular $${PAYPAL_PRICE_REGULAR.toFixed(2)})`);
+  } else {
+    bits.push(
+      `full $${PAYPAL_PRICE_FULL.toFixed(2)} (${PAYPAL_FULL_DISCOUNT_PCT}% off regular $${PAYPAL_PRICE_REGULAR.toFixed(2)}, save $${PAYPAL_FULL_DISCOUNT.toFixed(2)})`,
+    );
+  }
   if (t.seo) bits.push(`SEO +$${PAYPAL_PRICE_SEO.toFixed(2)}`);
   p.value = bits.join(" · ");
 }
@@ -664,17 +675,49 @@ function updatePaymentTotalDisplay() {
   updatePackageHiddenField();
 }
 
+let sendReadyToastTimer = null;
+function showSendReadyToast() {
+  const toast = document.getElementById("send-ready-toast");
+  if (!toast) return;
+  toast.hidden = false;
+  // Re-trigger animation if fired rapidly.
+  toast.classList.remove("is-visible");
+  void toast.offsetWidth;
+  toast.classList.add("is-visible");
+  if (sendReadyToastTimer) clearTimeout(sendReadyToastTimer);
+  sendReadyToastTimer = setTimeout(() => {
+    toast.classList.remove("is-visible");
+    setTimeout(() => {
+      if (!toast.classList.contains("is-visible")) toast.hidden = true;
+    }, 320);
+  }, 3800);
+}
+
+function hideSendReadyToast() {
+  const toast = document.getElementById("send-ready-toast");
+  if (!toast) return;
+  toast.classList.remove("is-visible");
+  toast.hidden = true;
+  if (sendReadyToastTimer) {
+    clearTimeout(sendReadyToastTimer);
+    sendReadyToastTimer = null;
+  }
+}
+
 function setContactPaymentComplete(orderId, amountStr) {
   const paid = document.getElementById("paypal-paid");
   const oid = document.getElementById("paypal-order-id");
   const amt = document.getElementById("payment-amount-sent");
   const btn = document.getElementById("contact-submit");
   const status = document.getElementById("payment-status");
+  const hint = document.getElementById("send-hint");
   if (paid) paid.value = "yes";
   if (oid) oid.value = orderId || "";
   if (amt) amt.value = amountStr || "";
   if (btn) btn.disabled = false;
   if (status) status.hidden = false;
+  if (hint) hint.hidden = true;
+  showSendReadyToast();
 }
 
 function clearContactPaymentState() {
@@ -683,11 +726,14 @@ function clearContactPaymentState() {
   const amt = document.getElementById("payment-amount-sent");
   const btn = document.getElementById("contact-submit");
   const status = document.getElementById("payment-status");
+  const hint = document.getElementById("send-hint");
   if (paid) paid.value = "";
   if (oid) oid.value = "";
   if (amt) amt.value = "";
   if (btn) btn.disabled = true;
   if (status) status.hidden = true;
+  if (hint) hint.hidden = false;
+  hideSendReadyToast();
 }
 
 function destroyPayPalButtons() {

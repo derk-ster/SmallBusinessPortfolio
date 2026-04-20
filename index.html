@@ -544,10 +544,12 @@
             </p>
             <form id="contact-form" class="contact-form" action="#" method="get">
               <input type="hidden" name="type" value="Purchase" />
-              <input type="hidden" id="package" name="package" value="Business ($799.99)" />
+              <input type="hidden" id="package" name="package" value="Business ($649.99, 18.75% off regular $799.99)" />
               <div class="field selected-offer-field">
                 <p class="selected-offer">
-                  You are asking about: <strong>Business website package, $799.99</strong>
+                  You are asking about:
+                  <strong>Business website package, <s class="price-strike">$799.99</s> $649.99</strong>
+                  <span class="price-badge">Save $150 &middot; 18.75% off</span>
                 </p>
               </div>
               <div class="payment-section">
@@ -564,11 +566,14 @@
                   <legend class="payment-type-legend">Payment type</legend>
                   <label class="payment-radio-label">
                     <input type="radio" name="pay-type" value="full" checked />
-                    <span>One-time pay in full (<strong>$799.99</strong>)</span>
+                    <span>
+                      One-time pay in full (<strong>$649.99</strong>)
+                      &mdash; <span class="price-discount-note">18.75% off regular $799.99, save $150</span>
+                    </span>
                   </label>
                   <label class="payment-radio-label">
                     <input type="radio" name="pay-type" value="deposit" />
-                    <span>Deposit to start work (15% of package today: <strong>$120.00</strong>, balance per agreement before launch)</span>
+                    <span>Deposit to start work (15% of regular $799.99 = <strong>$120.00</strong> today, balance per agreement before launch)</span>
                   </label>
                   <label class="payment-radio-label">
                     <input type="radio" name="pay-type" value="test" />
@@ -581,7 +586,7 @@
                     <span>Optional SEO basics add-on (<strong>+$99.99</strong>)</span>
                   </label>
                 </div>
-                <p class="payment-total" id="payment-total-display" aria-live="polite">Total due today: $799.99 USD</p>
+                <p class="payment-total" id="payment-total-display" aria-live="polite">Total due today: $649.99 USD</p>
                 <div id="paypal-button-container" class="paypal-button-container"></div>
                 <p class="payment-complete-msg" id="payment-status" hidden>Payment completed. You can send your inquiry.</p>
                 <input type="hidden" id="paypal-paid" name="paypal_paid" value="" autocomplete="off" />
@@ -619,7 +624,12 @@
                 <div class="pasted-images-preview" id="contact-pasted-preview"></div>
               </div>
               <button class="btn primary" type="submit" id="contact-submit" disabled>Send</button>
+              <p class="send-hint" id="send-hint">Please pay first.</p>
             </form>
+            <div class="send-ready-toast" id="send-ready-toast" role="status" aria-live="polite" hidden>
+              <span class="send-ready-toast-dot" aria-hidden="true"></span>
+              You can send your website request now!
+            </div>
           </div>
         </div>
       </section>
