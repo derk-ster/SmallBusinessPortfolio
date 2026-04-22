@@ -38,6 +38,15 @@
         } catch (e) {
           document.documentElement.setAttribute("data-theme", "dark");
         }
+        try {
+          var ak = "dws-accent";
+          var allowed = { gold: 1, emerald: 1, sapphire: 1, amethyst: 1, rose: 1 };
+          var accent = localStorage.getItem(ak);
+          if (!accent || !allowed[accent]) accent = "gold";
+          document.documentElement.setAttribute("data-accent", accent);
+        } catch (e) {
+          document.documentElement.setAttribute("data-accent", "gold");
+        }
       })();
     </script>
     <script type="application/ld+json">
@@ -100,6 +109,42 @@
             </span>
             <span class="theme-toggle-label visually-hidden" data-theme-label>Theme</span>
           </button>
+          <div class="accent-picker" id="accent-picker">
+            <button
+              type="button"
+              class="accent-toggle"
+              id="accent-toggle"
+              aria-label="Choose accent color"
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-controls="accent-menu"
+            >
+              <span class="accent-toggle-dot" aria-hidden="true"></span>
+              <span class="visually-hidden">Accent color</span>
+            </button>
+            <div class="accent-menu" id="accent-menu" role="menu" aria-label="Accent color options" hidden>
+              <button type="button" class="accent-swatch" role="menuitemradio" data-accent="gold" aria-checked="true">
+                <span class="accent-swatch-dot accent-swatch-dot--gold" aria-hidden="true"></span>
+                <span class="accent-swatch-label">Gold</span>
+              </button>
+              <button type="button" class="accent-swatch" role="menuitemradio" data-accent="emerald" aria-checked="false">
+                <span class="accent-swatch-dot accent-swatch-dot--emerald" aria-hidden="true"></span>
+                <span class="accent-swatch-label">Emerald</span>
+              </button>
+              <button type="button" class="accent-swatch" role="menuitemradio" data-accent="sapphire" aria-checked="false">
+                <span class="accent-swatch-dot accent-swatch-dot--sapphire" aria-hidden="true"></span>
+                <span class="accent-swatch-label">Sapphire</span>
+              </button>
+              <button type="button" class="accent-swatch" role="menuitemradio" data-accent="amethyst" aria-checked="false">
+                <span class="accent-swatch-dot accent-swatch-dot--amethyst" aria-hidden="true"></span>
+                <span class="accent-swatch-label">Amethyst</span>
+              </button>
+              <button type="button" class="accent-swatch" role="menuitemradio" data-accent="rose" aria-checked="false">
+                <span class="accent-swatch-dot accent-swatch-dot--rose" aria-hidden="true"></span>
+                <span class="accent-swatch-label">Rose</span>
+              </button>
+            </div>
+          </div>
           <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
         </div>
       </div>
@@ -109,6 +154,11 @@
       <div class="dot-field" aria-hidden="true"></div>
       <section id="home" class="hero">
         <div class="hero-overlay"></div>
+        <div class="hero-glows" aria-hidden="true">
+          <span class="hero-glow hero-glow--a"></span>
+          <span class="hero-glow hero-glow--b"></span>
+          <span class="hero-glow hero-glow--c"></span>
+        </div>
         <div class="container hero-content">
           <p class="eyebrow">Derek's Website Services · small business web design</p>
           <h1>Premium websites for small businesses that need to look real online.</h1>

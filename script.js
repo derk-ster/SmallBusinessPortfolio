@@ -3,6 +3,12 @@ const nav = document.querySelector(".nav");
 const themeToggle = document.getElementById("theme-toggle");
 const THEME_STORAGE_KEY = "dws-theme";
 
+const ACCENT_STORAGE_KEY = "dws-accent";
+const ACCENT_OPTIONS = ["gold", "emerald", "sapphire", "amethyst", "rose"];
+const accentToggle = document.getElementById("accent-toggle");
+const accentMenu = document.getElementById("accent-menu");
+const accentPicker = document.getElementById("accent-picker");
+
 if ("scrollRestoration" in history) {
   history.scrollRestoration = "manual";
 }
@@ -58,7 +64,75 @@ function initThemeControls() {
   });
 }
 
+function readStoredAccent() {
+  try {
+    const v = localStorage.getItem(ACCENT_STORAGE_KEY);
+    return ACCENT_OPTIONS.includes(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyDocumentAccent(accent) {
+  if (!ACCENT_OPTIONS.includes(accent)) return;
+  document.documentElement.setAttribute("data-accent", accent);
+  if (accentToggle) {
+    accentToggle.setAttribute("data-current", accent);
+  }
+  document.querySelectorAll(".accent-swatch").forEach((btn) => {
+    const isActive = btn.dataset.accent === accent;
+    btn.setAttribute("aria-checked", isActive ? "true" : "false");
+  });
+  window.dispatchEvent(new CustomEvent("dws-accentchange", { detail: { accent } }));
+}
+
+function setAccentMenuOpen(open) {
+  if (!accentMenu || !accentToggle) return;
+  accentMenu.hidden = !open;
+  accentToggle.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function initAccentControls() {
+  const initial = readStoredAccent() || document.documentElement.getAttribute("data-accent") || "gold";
+  applyDocumentAccent(initial);
+
+  accentToggle?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = accentMenu && !accentMenu.hidden;
+    setAccentMenuOpen(!open);
+  });
+
+  document.querySelectorAll(".accent-swatch").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const accent = btn.dataset.accent;
+      if (!accent) return;
+      try {
+        localStorage.setItem(ACCENT_STORAGE_KEY, accent);
+      } catch {
+        /* private mode / quota */
+      }
+      applyDocumentAccent(accent);
+      setAccentMenuOpen(false);
+      accentToggle?.focus();
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!accentPicker || accentMenu?.hidden) return;
+    if (accentPicker.contains(e.target)) return;
+    setAccentMenuOpen(false);
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && accentMenu && !accentMenu.hidden) {
+      setAccentMenuOpen(false);
+      accentToggle?.focus();
+    }
+  });
+}
+
 initThemeControls();
+initAccentControls();
 
 if (navToggle && nav) {
   navToggle.addEventListener("click", () => {
@@ -755,7 +829,7 @@ function loadPayPalSdk() {
   if (paypalSdkPromise) return paypalSdkPromise;
   paypalSdkPromise = new Promise((resolve, reject) => {
     const s = document.createElement("script");
-    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(PAYPAL_CLIENT_ID)}&currency=USD&intent=capture&disable-funding=paylater`;
+    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(PAYPAL_CLIENT_ID)}&currency=USD&intent=capture&components=buttons&enable-funding=venmo&disable-funding=paylater,credit`;
     s.async = true;
     s.onload = () => resolve();
     s.onerror = () => {
@@ -801,6 +875,7 @@ function renderContactPayPalButtons() {
                 ? "Derek's Website Services - project deposit"
                 : "Derek's Website Services - website package";
           return actions.order.create({
+            intent: "CAPTURE",
             purchase_units: [
               {
                 description,
@@ -810,6 +885,11 @@ function renderContactPayPalButtons() {
                 },
               },
             ],
+            application_context: {
+              shipping_preference: "NO_SHIPPING",
+              user_action: "PAY_NOW",
+              brand_name: "Derek's Website Services",
+            },
           });
         },
         onApprove(_data, actions) {
