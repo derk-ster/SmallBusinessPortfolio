@@ -638,6 +638,14 @@
                 </div>
                 <p class="payment-total" id="payment-total-display" aria-live="polite">Total due today: $649.99 USD</p>
                 <div id="paypal-button-container" class="paypal-button-container"></div>
+                <button
+                  type="button"
+                  id="paypal-reset-btn"
+                  class="paypal-reset-btn"
+                  aria-label="Reset payment options to switch between PayPal, Venmo, or card"
+                >
+                  Switch / reset payment options
+                </button>
                 <p class="payment-complete-msg" id="payment-status" hidden>Payment completed. You can send your inquiry.</p>
                 <input type="hidden" id="paypal-paid" name="paypal_paid" value="" autocomplete="off" />
                 <input type="hidden" id="paypal-order-id" name="paypal_order_id" value="" autocomplete="off" />

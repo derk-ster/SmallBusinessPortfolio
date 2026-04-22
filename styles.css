@@ -1998,6 +1998,36 @@ main > #home {
   border-radius: 10px;
 }
 
+.paypal-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px dashed rgba(var(--accent-rgb), 0.4);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.paypal-reset-btn:hover,
+.paypal-reset-btn:focus-visible {
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.7);
+  background: rgba(var(--accent-rgb), 0.06);
+  outline: none;
+}
+
+.paypal-reset-btn:active {
+  transform: translateY(1px);
+}
+
 .payment-complete-msg {
   margin-top: 14px;
   font-size: 0.95rem;

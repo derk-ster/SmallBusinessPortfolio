@@ -899,9 +899,16 @@ function renderContactPayPalButtons() {
             setContactPaymentComplete(id, amt);
           });
         },
+        onCancel() {
+          // User closed the PayPal popup or backed out without paying.
+          // Re-render the buttons so they're not stuck on a single funding source.
+          renderContactPayPalButtons();
+        },
         onError(err) {
           console.error(err);
           alert("PayPal could not complete. Check the console or try again.");
+          // Re-render so the user can pick a different funding source.
+          renderContactPayPalButtons();
         },
       });
       return paypalButtonsInstance.render("#paypal-button-container");
@@ -910,6 +917,14 @@ function renderContactPayPalButtons() {
       console.error(err);
       if (missing) missing.hidden = false;
     });
+}
+
+function initPayPalResetButton() {
+  const btn = document.getElementById("paypal-reset-btn");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    renderContactPayPalButtons();
+  });
 }
 
 function syncSeoWithPayMode() {
@@ -944,6 +959,7 @@ function initContactPayPalSection() {
     updatePaymentTotalDisplay();
     renderContactPayPalButtons();
   });
+  initPayPalResetButton();
   renderContactPayPalButtons();
 }
 
