@@ -828,12 +828,12 @@ main > #home {
   );
 }
 
-/* Tech stack marquee — sits between hero and About as the connector */
-.tech-marquee-connector {
+/* Highlights marquee — moved out of the hero, now sits between hero and About */
+.marquee-connector {
   position: relative;
   width: 100%;
   margin: 0;
-  padding: clamp(20px, 3.5vw, 36px) 0;
+  padding: clamp(18px, 3vw, 32px) 0;
   background: linear-gradient(
     to bottom,
     rgba(var(--accent-rgb), 0.05) 0%,
@@ -847,7 +847,7 @@ main > #home {
   mask-image: linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%);
 }
 
-:root[data-theme="light"] .tech-marquee-connector {
+:root[data-theme="light"] .marquee-connector {
   background: linear-gradient(
     to bottom,
     rgba(var(--accent-rgb), 0.04) 0%,
@@ -858,17 +858,17 @@ main > #home {
   border-bottom: 1px solid rgba(var(--accent-rgb), 0.22);
 }
 
-.tech-marquee-track {
+.marquee-connector-track {
   display: flex;
   width: max-content;
-  animation: marquee 38s linear infinite;
+  animation: marquee 32s linear infinite;
 }
 
-.tech-marquee-connector:hover .tech-marquee-track {
+.marquee-connector:hover .marquee-connector-track {
   animation-play-state: paused;
 }
 
-.tech-marquee-group {
+.marquee-connector-group {
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -876,44 +876,14 @@ main > #home {
   padding-right: clamp(12px, 1.6vw, 20px);
 }
 
-.tech-marquee-pill {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  font-family: var(--font-sans);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  padding: 8px 18px;
-  border-radius: 999px;
-  border: 1px solid rgba(var(--accent-rgb), 0.28);
-  background: var(--bg-elevated);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 4px 14px rgba(0, 0, 0, 0.18);
-  transition: color 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
-  white-space: nowrap;
-}
-
-:root[data-theme="light"] .tech-marquee-pill {
-  background: var(--bg-surface);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 4px 12px rgba(60, 48, 36, 0.08);
-}
-
-.tech-marquee-pill:hover {
-  color: var(--accent);
-  border-color: rgba(var(--accent-rgb), 0.55);
-  transform: translateY(-1px);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .tech-marquee-connector {
+  .marquee-connector {
     -webkit-mask-image: none;
     mask-image: none;
     overflow-x: auto;
   }
 
-  .tech-marquee-track {
+  .marquee-connector-track {
     animation: none;
   }
 }
@@ -2619,17 +2589,11 @@ select:focus {
     padding-top: 12px;
   }
 
-  .tech-marquee-connector {
-    padding: clamp(14px, 4vw, 24px) 0;
+  .marquee-connector {
+    padding: clamp(14px, 4vw, 22px) 0;
   }
 
-  .tech-marquee-pill {
-    font-size: 0.72rem;
-    padding: 6px 14px;
-    letter-spacing: 0.08em;
-  }
-
-  .tech-marquee-group {
+  .marquee-connector-group {
     gap: 10px;
     padding-right: 10px;
   }
