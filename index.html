@@ -47,6 +47,14 @@
         } catch (e) {
           document.documentElement.setAttribute("data-accent", "gold");
         }
+        try {
+          var played = sessionStorage.getItem("dws-loader-played") === "1";
+          if (!played) {
+            document.documentElement.classList.add("is-loading");
+          }
+        } catch (e) {
+          document.documentElement.classList.add("is-loading");
+        }
       })();
     </script>
     <script type="application/ld+json">
@@ -76,13 +84,26 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="icon" type="image/png" href="Asset/DWS.png" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Dancing+Script:wght@500;700&family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   </head>
   <body>
+    <div id="loading-screen" class="loading-screen" role="presentation" aria-hidden="true">
+      <div class="loading-screen__bg"></div>
+      <div class="loading-screen__intro">
+        <p class="loading-screen__eyebrow">Derek's Website Services</p>
+        <div class="loading-screen__bar" aria-hidden="true"><span></span></div>
+      </div>
+      <div class="loading-screen__logo" id="loading-screen-logo">
+        <div class="loading-screen__logo-spin">
+          <img src="Asset/DWS.png" alt="" aria-hidden="true" decoding="async" fetchpriority="high" />
+        </div>
+      </div>
+    </div>
+
     <header class="site-header">
       <div class="container header-inner">
         <a class="logo" href="#home" aria-label="Derek's Website Services, website design for small businesses">
@@ -201,7 +222,7 @@
             <p class="section-kicker">About</p>
             <h2 class="section-heading-serif">A simple process for owners who are short on time.</h2>
             <p class="section-lead">
-              I'm Derek, a developer near Dallas. I mostly work with small businesses in Texas, but
+              I'm Derek, a developer near Dallas with 2+ years of experience. I mostly work with small businesses in Texas, but
               out-of-state projects are welcome too. Fair pricing, and you deal with one person from start to launch.
             </p>
           </div>
@@ -608,6 +629,35 @@
                   Pay with PayPal, or with a card through PayPal where available. Finish checkout before sending the
                   inquiry. By paying, you agree to the terms in the contract.
                 </p>
+                <div class="contract-verify" id="contract-verify" data-attached="false">
+                  <div class="contract-verify-head">
+                    <span class="contract-verify-badge" id="contract-verify-badge" aria-live="polite">Required</span>
+                    <p class="contract-verify-title">Signed Website Development Agreement</p>
+                  </div>
+                  <p class="contract-verify-help">
+                    Before paying, attach a screenshot or image of the signed agreement. You can sign it on this page,
+                    or upload a photo you already have. The same image is sent with your inquiry.
+                  </p>
+                  <div class="contract-verify-actions">
+                    <button type="button" class="btn primary contract-verify-btn" id="contract-sign-open">Sign on this page</button>
+                    <button type="button" class="btn ghost contract-verify-btn" id="contract-upload-btn">Upload image / PDF</button>
+                    <button type="button" class="btn ghost contract-verify-btn" id="contract-copy-message" disabled>Copy to message</button>
+                    <input
+                      type="file"
+                      id="contract-upload-input"
+                      class="contract-upload-input"
+                      accept="image/*,application/pdf"
+                      multiple
+                      hidden
+                    />
+                  </div>
+                  <div class="contract-verify-preview" id="contract-verify-preview" aria-live="polite"></div>
+                  <p class="contract-verify-status" id="contract-verify-status">No signed contract attached yet.</p>
+                </div>
+                <div class="payment-locked-msg" id="payment-locked-msg">
+                  <span aria-hidden="true">🔒</span>
+                  Attach a signed contract above to unlock PayPal.
+                </div>
                 <p class="payment-config-missing" id="paypal-config-missing" hidden>
                   Add your public <strong>PayPal Client ID</strong> in <code>script.js</code> as
                   <code>PAYPAL_CLIENT_ID</code> (never your secret key). Then reload this page.
@@ -636,6 +686,53 @@
                     <span>Optional SEO basics add-on (<strong>+$99.99</strong>)</span>
                   </label>
                 </div>
+
+                <fieldset class="hosting-plan-fieldset" id="hosting-plan-fieldset">
+                  <legend class="payment-type-legend">Optional hosting plan <span class="payment-legend-note">(billed after launch)</span></legend>
+                  <p class="payment-help">
+                    Pick a recurring hosting plan now and you'll receive a PayPal invoice from me on the schedule
+                    below — no second checkout today. Cancel any time, no lock-in.
+                  </p>
+                  <label class="payment-radio-label">
+                    <input type="radio" name="hosting-plan" value="none" checked />
+                    <span>No hosting plan</span>
+                  </label>
+                  <label class="payment-radio-label">
+                    <input type="radio" name="hosting-plan" value="monthly" />
+                    <span>Monthly (<strong>$19.99</strong>/mo) &mdash; first invoice 30 days after launch</span>
+                  </label>
+                  <label class="payment-radio-label">
+                    <input type="radio" name="hosting-plan" value="yearly" />
+                    <span>Yearly (<strong>$199.99</strong>/yr, save $39.89) &mdash; first invoice 30 days after launch</span>
+                  </label>
+                </fieldset>
+
+                <div class="deposit-schedule" id="deposit-schedule" hidden>
+                  <h4 class="form-block-title deposit-schedule__title">Schedule the second payment (85% balance)</h4>
+                  <p class="payment-help">
+                    The remaining <strong id="deposit-balance-amount">$679.99</strong>
+                    is charged automatically on the date you pick below. You'll get a PayPal invoice
+                    reminder the day before. Pick any date from 7 days out through 90 days out
+                    (typical project length is 2&ndash;6 weeks).
+                  </p>
+                  <div class="field deposit-schedule__field">
+                    <label for="deposit-schedule-date">Automatic second-payment date</label>
+                    <input
+                      type="date"
+                      id="deposit-schedule-date"
+                      name="deposit_schedule_date"
+                      autocomplete="off"
+                    />
+                    <p class="deposit-schedule__summary" id="deposit-schedule-summary" aria-live="polite"></p>
+                  </div>
+                  <label class="payment-checkbox-label deposit-schedule__authorize">
+                    <input type="checkbox" id="deposit-schedule-authorize" name="deposit_schedule_authorize" />
+                    <span>
+                      I authorize an automatic PayPal charge of the 85% balance to the same payment method on the date
+                      above. I can update or cancel the scheduled invoice up to 24 hours before the charge.
+                    </span>
+                  </label>
+                </div>
                 <p class="payment-total" id="payment-total-display" aria-live="polite">Total due today: $649.99 USD</p>
                 <div id="paypal-button-container" class="paypal-button-container"></div>
                 <button
@@ -650,6 +747,9 @@
                 <input type="hidden" id="paypal-paid" name="paypal_paid" value="" autocomplete="off" />
                 <input type="hidden" id="paypal-order-id" name="paypal_order_id" value="" autocomplete="off" />
                 <input type="hidden" id="payment-amount-sent" name="payment_amount_usd" value="" autocomplete="off" />
+                <input type="hidden" id="contract-attached" name="contract_attached" value="no" autocomplete="off" />
+                <input type="hidden" id="hosting-plan-summary" name="hosting_plan" value="none" autocomplete="off" />
+                <input type="hidden" id="deposit-balance-due" name="deposit_balance_due_usd" value="" autocomplete="off" />
               </div>
               <div class="field">
                 <label for="name">Name</label>
@@ -764,21 +864,125 @@
       <div class="agreement-lightbox-panel glass-card">
         <div class="agreement-lightbox-toolbar">
           <h2 id="agreement-dialog-title" class="agreement-lightbox-title">Website Development Agreement</h2>
+          <div class="agreement-mode-tabs" role="tablist" aria-label="Agreement mode">
+            <button type="button" class="agreement-mode-tab is-active" role="tab" aria-selected="true" data-mode="view">Read</button>
+            <button type="button" class="agreement-mode-tab" role="tab" aria-selected="false" data-mode="fill">Fill &amp; sign</button>
+          </div>
           <div class="agreement-lightbox-controls">
             <button type="button" class="btn ghost agreement-page-btn" id="agreement-page-prev">Previous page</button>
             <span id="agreement-page-label" class="agreement-page-label" aria-live="polite">Loading…</span>
             <button type="button" class="btn ghost agreement-page-btn" id="agreement-page-next">Next page</button>
-            <a
-              class="btn ghost agreement-open-tab"
-              href="Asset/Website-Development-Agreement.pdf"
-              target="_blank"
-              rel="noopener"
-              >Open in new tab</a>
           </div>
           <button type="button" class="agreement-lightbox-close" aria-label="Close agreement viewer">×</button>
         </div>
-        <div class="agreement-pdf-viewport" id="agreement-pdf-viewport">
-          <canvas id="agreement-pdf-canvas" class="agreement-pdf-canvas" aria-label="Agreement PDF page"></canvas>
+        <div class="agreement-fill-bar" id="agreement-fill-bar" hidden>
+          <div class="agreement-tools" role="toolbar" aria-label="Fill and sign tools">
+            <button type="button" class="agreement-tool is-active" data-tool="text" aria-pressed="true" title="Click an underline or any blank to type">
+              <span aria-hidden="true">T</span><span class="agreement-tool-label">Type</span>
+            </button>
+            <button type="button" class="agreement-tool" data-tool="pen" aria-pressed="false" title="Sign or draw with your mouse or finger">
+              <span aria-hidden="true">✎</span><span class="agreement-tool-label">Sign</span>
+            </button>
+            <button type="button" class="agreement-tool" data-tool="erase" aria-pressed="false" title="Click a stroke or text to remove it">
+              <span aria-hidden="true">⌫</span><span class="agreement-tool-label">Erase</span>
+            </button>
+            <button type="button" class="agreement-tool agreement-tool--secondary" id="agreement-clear-page" title="Remove all marks on this page">
+              <span class="agreement-tool-label">Clear page</span>
+            </button>
+          </div>
+          <div class="agreement-fill-actions">
+            <button type="button" class="btn ghost" id="agreement-attach-message">Add to message</button>
+            <button type="button" class="btn primary" id="agreement-save-attach">Save &amp; attach to payment</button>
+          </div>
+        </div>
+        <p class="agreement-fill-hint" id="agreement-fill-hint" hidden>
+          Click any underline to type your name, dates, or details. Switch to <strong>Sign</strong> to draw your signature. Then <strong>Save &amp; attach to payment</strong> &mdash; required before checkout.
+        </p>
+        <div class="agreement-fill-layout">
+          <aside class="agreement-fill-sidebar" id="agreement-fill-sidebar" hidden aria-label="Fill and sign options">
+            <button type="button" class="agreement-sidebar-toggle" id="agreement-sidebar-toggle" aria-expanded="true" aria-controls="agreement-sidebar-body">
+              <span class="agreement-sidebar-toggle-label">Options</span>
+              <span class="agreement-sidebar-toggle-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="agreement-sidebar-body" id="agreement-sidebar-body">
+              <section class="agreement-sidebar-panel" data-tool-panel="text">
+                <h4 class="agreement-sidebar-title">Type</h4>
+                <div class="agreement-control">
+                  <label class="agreement-control-label" for="agreement-text-font">Font</label>
+                  <select id="agreement-text-font" class="agreement-control-select">
+                    <option value="Inter, system-ui, sans-serif">Sans · Inter</option>
+                    <option value="'Cormorant Garamond', Georgia, serif">Serif · Cormorant</option>
+                    <option value="Georgia, 'Times New Roman', serif">Serif · Times</option>
+                    <option value="'Dancing Script', 'Brush Script MT', cursive">Handwriting · Dancing</option>
+                    <option value="'Caveat', 'Comic Sans MS', cursive">Handwriting · Caveat</option>
+                    <option value="'Courier New', monospace">Monospace</option>
+                  </select>
+                </div>
+                <div class="agreement-control">
+                  <label class="agreement-control-label" for="agreement-text-size">
+                    Size <span class="agreement-control-value" id="agreement-text-size-val">16</span>
+                  </label>
+                  <input id="agreement-text-size" class="agreement-control-range" type="range" min="10" max="40" step="1" value="16" />
+                </div>
+                <div class="agreement-control">
+                  <span class="agreement-control-label">Color</span>
+                  <div class="agreement-swatches" data-swatch-target="text">
+                    <button type="button" class="agreement-swatch is-active" style="--sw:#111111" data-color="#111111" aria-label="Black"></button>
+                    <button type="button" class="agreement-swatch" style="--sw:#1f3a8a" data-color="#1f3a8a" aria-label="Dark blue"></button>
+                    <button type="button" class="agreement-swatch" style="--sw:#9b1c1c" data-color="#9b1c1c" aria-label="Red"></button>
+                    <button type="button" class="agreement-swatch" style="--sw:#0c4a3c" data-color="#0c4a3c" aria-label="Dark green"></button>
+                    <button type="button" class="agreement-swatch" style="--sw:#7c3a16" data-color="#7c3a16" aria-label="Brown"></button>
+                    <label class="agreement-swatch agreement-swatch--custom" aria-label="Custom color">
+                      <input type="color" id="agreement-text-color" value="#111111" />
+                    </label>
+                  </div>
+                </div>
+              </section>
+
+              <section class="agreement-sidebar-panel" data-tool-panel="pen" hidden>
+                <h4 class="agreement-sidebar-title">Sign</h4>
+                <div class="agreement-control">
+                  <label class="agreement-control-label" for="agreement-pen-size">
+                    Thickness <span class="agreement-control-value" id="agreement-pen-size-val">3</span>
+                  </label>
+                  <input id="agreement-pen-size" class="agreement-control-range" type="range" min="1" max="10" step="1" value="3" />
+                </div>
+                <div class="agreement-control">
+                  <span class="agreement-control-label">Ink</span>
+                  <div class="agreement-swatches" data-swatch-target="pen">
+                    <button type="button" class="agreement-swatch is-active" style="--sw:#111111" data-color="#111111" aria-label="Black"></button>
+                    <button type="button" class="agreement-swatch" style="--sw:#1f3a8a" data-color="#1f3a8a" aria-label="Dark blue"></button>
+                    <button type="button" class="agreement-swatch" style="--sw:#9b1c1c" data-color="#9b1c1c" aria-label="Red"></button>
+                    <button type="button" class="agreement-swatch" style="--sw:#0c4a3c" data-color="#0c4a3c" aria-label="Dark green"></button>
+                    <button type="button" class="agreement-swatch" style="--sw:#7c3a16" data-color="#7c3a16" aria-label="Brown"></button>
+                    <label class="agreement-swatch agreement-swatch--custom" aria-label="Custom color">
+                      <input type="color" id="agreement-pen-color" value="#111111" />
+                    </label>
+                  </div>
+                </div>
+                <p class="agreement-sidebar-note">Tip: slow down for a steadier signature line.</p>
+              </section>
+
+              <section class="agreement-sidebar-panel" data-tool-panel="erase" hidden>
+                <h4 class="agreement-sidebar-title">Erase</h4>
+                <div class="agreement-control">
+                  <label class="agreement-control-label" for="agreement-erase-size">
+                    Eraser size <span class="agreement-control-value" id="agreement-erase-size-val">28</span>
+                  </label>
+                  <input id="agreement-erase-size" class="agreement-control-range" type="range" min="10" max="80" step="2" value="28" />
+                </div>
+                <p class="agreement-sidebar-note">Press and hold, then drag over your marks or text to erase. Release to stop.</p>
+              </section>
+            </div>
+          </aside>
+          <div class="agreement-pdf-viewport" id="agreement-pdf-viewport">
+            <div class="agreement-pdf-stage" id="agreement-pdf-stage">
+              <canvas id="agreement-pdf-canvas" class="agreement-pdf-canvas" aria-label="Agreement PDF page"></canvas>
+              <canvas id="agreement-overlay-canvas" class="agreement-overlay-canvas" aria-hidden="true"></canvas>
+              <div id="agreement-text-layer" class="agreement-text-layer" aria-hidden="true"></div>
+              <div id="agreement-eraser-cursor" class="agreement-eraser-cursor" aria-hidden="true"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -822,7 +1026,14 @@
       </div>
     </footer>
 
-    <a href="#contact" class="btn primary fab-service">Request a service</a>
+    <div class="fab-service-wrap">
+      <span class="fab-service-deal" aria-hidden="true">
+        <span class="fab-service-deal__flash">Limited&nbsp;time</span>
+        <span class="fab-service-deal__main">$150 off the full package!</span>
+      </span>
+      <a href="#contact" class="btn primary fab-service" aria-describedby="fab-service-deal-text">Request a service</a>
+      <span id="fab-service-deal-text" class="visually-hidden">Limited time deal — $150 off the full package.</span>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
