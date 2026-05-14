@@ -171,6 +171,10 @@ document.addEventListener("click", (e) => {
 const fadeItems = document.querySelectorAll(
   ".section, .about-image, .service-card, .background-summary-card, .agreement-cover-button, .certification-card, .contact-form, .questions-form, .project-card, .real-review-card"
 );
+// Use a very low threshold so tall sections (e.g. About + Projects on mobile,
+// where the section can be many viewports tall and never reaches 20% intersection)
+// still reveal as soon as they enter the viewport. The slight rootMargin pull-in
+// keeps the original "fade in just before fully visible" feel.
 const observer = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
@@ -180,13 +184,132 @@ const observer = new IntersectionObserver(
       }
     });
   },
-  { threshold: 0.2 }
+  { threshold: 0.01, rootMargin: "0px 0px -40px 0px" }
 );
 
 fadeItems.forEach((item) => {
   item.classList.add("fade-in");
   observer.observe(item);
 });
+
+/* ============================================================
+   Impact stats counters
+   - Each `[data-counter]` element animates from 0 to its target
+     using an ease-out curve so early values fly past and the
+     last numbers settle slowly. Sub-integer values are shown
+     mid-flight (e.g. 0.1 → 0.5 → 0.7 → 1.2 → 1.5 → 1.6 → 1.9
+     → 2) and the integer suffix (e.g. "+") is appended only at
+     the final landing.
+   - Triggered when each card scrolls into view; runs once.
+   ============================================================ */
+(function initImpactCounters() {
+  const counters = document.querySelectorAll("[data-counter]");
+  if (!counters.length) return;
+
+  const reduceMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // easeOutCubic gives a slow start and a soft landing, so the
+  // number visibly ticks through values like 0.5 → 1.3 → 1.7 → 1.9
+  // → 2 instead of snapping to the target. We add a tiny periodic
+  // wobble (a damped sine that fades toward the end) so consecutive
+  // increments are uneven the way real, hand-counted growth feels
+  // (e.g. 0.1, 0.5, 0.7, 1.2, 1.5, 1.6, 1.9, 2) instead of mechanical.
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function counterCurve(t) {
+    const base = easeOutCubic(t);
+    const wobble = Math.sin(t * Math.PI * 4) * 0.02 * (1 - t);
+    return Math.max(0, Math.min(1, base + wobble));
+  }
+
+  function formatValue(current, target, decimals) {
+    // Once we've crossed the integer target, render as a clean
+    // integer (no decimal). Earlier in the run, render with the
+    // requested decimal places so the number visibly grows in
+    // small, uneven steps.
+    if (current >= target) return String(target);
+    const factor = Math.pow(10, decimals);
+    const truncated = Math.floor(current * factor) / factor;
+    return truncated.toFixed(decimals);
+  }
+
+  function runCounter(el) {
+    const target = parseFloat(el.dataset.counterTarget || "0");
+    const duration = parseFloat(el.dataset.counterDuration || "2400");
+    const decimals = parseInt(el.dataset.counterDecimals || "1", 10);
+    const suffixText = el.dataset.counterSuffix || "";
+    const numEl = el.querySelector(".impact-value-num");
+    const suffixEl = el.querySelector(".impact-value-suffix");
+    const card = el.closest("[data-impact-card]");
+    if (!numEl) return;
+
+    if (suffixEl) suffixEl.textContent = "";
+    if (card) card.classList.add("is-counting");
+
+    if (reduceMotion) {
+      numEl.textContent = String(target);
+      if (suffixEl) suffixEl.textContent = suffixText;
+      if (card) {
+        card.classList.remove("is-counting");
+        card.classList.add("is-done");
+      }
+      return;
+    }
+
+    const start = performance.now();
+    let lastShown = "";
+
+    function frame(now) {
+      const elapsed = now - start;
+      const t = Math.min(1, elapsed / duration);
+      const eased = counterCurve(t);
+      const value = eased * target;
+      const display = formatValue(value, target, decimals);
+      if (display !== lastShown) {
+        numEl.textContent = display;
+        lastShown = display;
+      }
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        // Snap exactly to target and reveal the suffix ("+", etc.)
+        numEl.textContent = String(target);
+        if (suffixEl) suffixEl.textContent = suffixText;
+        if (card) {
+          card.classList.remove("is-counting");
+          card.classList.add("is-done");
+        }
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  const counterObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        runCounter(entry.target);
+        counterObserver.unobserve(entry.target);
+      });
+    },
+    { threshold: 0.35, rootMargin: "0px 0px -10% 0px" },
+  );
+
+  counters.forEach((c) => {
+    // Initialize the visible text so it doesn't flash a hard "0"
+    // before the observer fires.
+    const numEl = c.querySelector(".impact-value-num");
+    const decimals = parseInt(c.dataset.counterDecimals || "1", 10);
+    if (numEl) numEl.textContent = (0).toFixed(decimals);
+    const suffixEl = c.querySelector(".impact-value-suffix");
+    if (suffixEl) suffixEl.textContent = "";
+    counterObserver.observe(c);
+  });
+})();
 
 const carouselTrack = document.querySelector(".carousel-track");
 const carouselCards = document.querySelectorAll(".testimonial-card");
@@ -336,36 +459,154 @@ const portraitLightboxImg = portraitLightbox?.querySelector("img");
 const portraitLightboxClose = portraitLightbox?.querySelector(".portrait-lightbox-close");
 const portraitTrigger = document.querySelector(".portrait-trigger");
 
-function openImageLightbox(src, alt) {
+/* FLIP-style open animation: the image starts at the source rect (the
+   thumbnail the user clicked on) and animates up to its rest position
+   inside the lightbox. Closing reverses the same motion. */
+let lightboxOriginRect = null;
+const LIGHTBOX_ANIM_MS = 460;
+const LIGHTBOX_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const reduceMotionForLightbox =
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function getLightboxOriginFromEvent(e, fallbackEl) {
+  // Use the clicked element's bounding rect by default so the image truly
+  // grows out of the thumbnail. If we only have a coarse click point, fall
+  // back to a tiny 8x8 rect centered on the cursor.
+  const srcImg = fallbackEl?.querySelector?.("img");
+  if (srcImg && srcImg.getBoundingClientRect) {
+    const r = srcImg.getBoundingClientRect();
+    if (r.width && r.height) return r;
+  }
+  if (e && typeof e.clientX === "number") {
+    const x = e.clientX;
+    const y = e.clientY;
+    return { left: x - 4, top: y - 4, width: 8, height: 8, right: x + 4, bottom: y + 4 };
+  }
+  return null;
+}
+
+function openImageLightbox(src, alt, originRect) {
   if (!portraitLightbox || !portraitLightboxImg || !src) return;
+  lightboxOriginRect = originRect || null;
   portraitLightboxImg.src = src;
   portraitLightboxImg.alt = alt || "";
   portraitLightbox.classList.add("active");
   portraitLightbox.setAttribute("aria-hidden", "false");
+
+  if (reduceMotionForLightbox || !originRect) return;
+
+  const playWhenReady = () => {
+    const dest = portraitLightboxImg.getBoundingClientRect();
+    if (!dest.width || !dest.height) {
+      requestAnimationFrame(playWhenReady);
+      return;
+    }
+    const sx = Math.max(0.04, originRect.width / dest.width);
+    const sy = Math.max(0.04, originRect.height / dest.height);
+    const s = Math.min(sx, sy);
+    const dx =
+      originRect.left + originRect.width / 2 - (dest.left + dest.width / 2);
+    const dy =
+      originRect.top + originRect.height / 2 - (dest.top + dest.height / 2);
+
+    portraitLightbox.classList.remove("is-animating");
+    portraitLightboxImg.style.transformOrigin = "50% 50%";
+    /* FIRST (no transition): rest state visually matches the thumbnail. */
+    portraitLightboxImg.style.transition = "none";
+    portraitLightboxImg.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${s.toFixed(4)})`;
+    portraitLightboxImg.style.opacity = "1";
+
+    void portraitLightboxImg.offsetHeight;
+
+    /* SECOND: enable transform transition only, then move to layout position. */
+    portraitLightboxImg.style.transition = `transform ${LIGHTBOX_ANIM_MS}ms ${LIGHTBOX_EASE}`;
+    portraitLightbox.classList.add("is-animating");
+    requestAnimationFrame(() => {
+      portraitLightboxImg.style.transform = "";
+    });
+
+    window.setTimeout(() => {
+      portraitLightbox.classList.remove("is-animating");
+      portraitLightboxImg.style.transition = "";
+      portraitLightboxImg.style.removeProperty("transform");
+    }, LIGHTBOX_ANIM_MS + 50);
+  };
+
+  if (portraitLightboxImg.complete && portraitLightboxImg.naturalWidth) {
+    requestAnimationFrame(playWhenReady);
+  } else {
+    portraitLightboxImg.addEventListener("load", playWhenReady, { once: true });
+  }
 }
 
 function closeImageLightbox() {
   if (!portraitLightbox || !portraitLightboxImg) return;
-  portraitLightbox.classList.remove("active");
-  portraitLightbox.setAttribute("aria-hidden", "true");
-  portraitLightboxImg.src = "";
-  portraitLightboxImg.alt = "";
+
+  const finalize = () => {
+    portraitLightbox.classList.remove("active", "is-animating");
+    portraitLightbox.setAttribute("aria-hidden", "true");
+    portraitLightboxImg.style.transition = "";
+    portraitLightboxImg.style.removeProperty("transform");
+    portraitLightboxImg.style.removeProperty("opacity");
+    portraitLightboxImg.style.removeProperty("transformOrigin");
+    portraitLightboxImg.src = "";
+    portraitLightboxImg.alt = "";
+    lightboxOriginRect = null;
+  };
+
+  if (reduceMotionForLightbox || !lightboxOriginRect) {
+    finalize();
+    return;
+  }
+  const dest = portraitLightboxImg.getBoundingClientRect();
+  const origin = lightboxOriginRect;
+  if (!dest.width || !dest.height) {
+    finalize();
+    return;
+  }
+  const sx = Math.max(0.04, origin.width / dest.width);
+  const sy = Math.max(0.04, origin.height / dest.height);
+  const s = Math.min(sx, sy);
+  const dx = origin.left + origin.width / 2 - (dest.left + dest.width / 2);
+  const dy = origin.top + origin.height / 2 - (dest.top + dest.height / 2);
+
+  portraitLightboxImg.style.transformOrigin = "50% 50%";
+  portraitLightboxImg.style.transition = "none";
+  portraitLightboxImg.style.transform = "";
+  void portraitLightboxImg.offsetHeight;
+
+  portraitLightboxImg.style.transition = `transform ${LIGHTBOX_ANIM_MS}ms ${LIGHTBOX_EASE}`;
+  portraitLightbox.classList.add("is-animating");
+  requestAnimationFrame(() => {
+    portraitLightboxImg.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${s.toFixed(4)})`;
+  });
+
+  window.setTimeout(finalize, LIGHTBOX_ANIM_MS + 50);
 }
 
 if (portraitTrigger && portraitLightbox && portraitLightboxImg) {
   const portraitImg = portraitTrigger.querySelector("img");
-  portraitTrigger.addEventListener("click", () => {
+  portraitTrigger.addEventListener("click", (e) => {
     if (portraitImg?.src) {
-      openImageLightbox(portraitImg.src, "Portrait of Derek (larger)");
+      openImageLightbox(
+        portraitImg.src,
+        "Portrait of Derek (larger)",
+        getLightboxOriginFromEvent(e, portraitTrigger),
+      );
     }
   });
 }
 
 document.querySelectorAll(".certification-trigger").forEach((btn) => {
-  btn.addEventListener("click", () => {
+  btn.addEventListener("click", (e) => {
     const img = btn.querySelector("img");
     if (img?.src) {
-      openImageLightbox(img.src, `${img.alt || "Certification"} (larger)`);
+      openImageLightbox(
+        img.src,
+        `${img.alt || "Certification"} (larger)`,
+        getLightboxOriginFromEvent(e, btn),
+      );
     }
   });
 });
@@ -407,11 +648,15 @@ let agreementCurrentPage = 1;
 let agreementPdfDoc = null;
 let agreementPdfLoadPromise = null;
 let agreementResizeTimer = 0;
+let agreementZoom = 1; // 1 = fit to viewport; range AGREEMENT_ZOOM_MIN..MAX
+const AGREEMENT_ZOOM_MIN = 0.5;
+const AGREEMENT_ZOOM_MAX = 4;
+const AGREEMENT_ZOOM_STEP = 0.25;
 
 /* Fill & sign state ---------------------------------------------------- */
 const agreementFill = {
   mode: "view", // "view" | "fill"
-  tool: "text", // "text" | "pen" | "erase"
+  tool: "text", // "navigate" | "text" | "pen" | "erase"
   strokes: Object.create(null), // pageNum -> [{ color, width, points: [{x,y}] }] (x,y normalized 0-1)
   texts: Object.create(null), // pageNum -> [{ id, x, y, w, fontSize, fontFamily, color, text }]
   textIdSeq: 0,
@@ -502,6 +747,41 @@ function ensureAgreementPdfLoaded() {
   return agreementPdfLoadPromise;
 }
 
+function rebuildAgreementNavPageList() {
+  const host = document.getElementById("agreement-nav-page-list");
+  if (!host) return;
+  host.innerHTML = "";
+  const total = agreementPdfDoc?.numPages || 0;
+  if (!total) {
+    const hint = document.createElement("p");
+    hint.className = "agreement-sidebar-note";
+    hint.textContent = "Open the agreement to load pages.";
+    host.appendChild(hint);
+    return;
+  }
+  for (let i = 1; i <= total; i += 1) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "agreement-nav-page-chip";
+    btn.textContent = String(i);
+    btn.setAttribute("aria-label", `Go to page ${i}`);
+    btn.setAttribute("role", "listitem");
+    if (i === agreementCurrentPage) btn.classList.add("is-current");
+    btn.addEventListener("click", () => {
+      void renderAgreementPdfPage(i);
+    });
+    host.appendChild(btn);
+  }
+}
+
+function syncAgreementSidebarNavButtons() {
+  const prev = document.getElementById("agreement-sidebar-nav-prev");
+  const next = document.getElementById("agreement-sidebar-nav-next");
+  const total = agreementPdfDoc?.numPages || 0;
+  if (prev) prev.disabled = agreementCurrentPage <= 1 || !agreementPdfDoc;
+  if (next) next.disabled = !agreementPdfDoc || !total || agreementCurrentPage >= total;
+}
+
 function updateAgreementPageNav() {
   const total = agreementPdfDoc?.numPages || 0;
   if (agreementPageLabel) {
@@ -515,6 +795,8 @@ function updateAgreementPageNav() {
   if (agreementPageNext) {
     agreementPageNext.disabled = !agreementPdfDoc || agreementCurrentPage >= (agreementPdfDoc.numPages || 0);
   }
+  rebuildAgreementNavPageList();
+  syncAgreementSidebarNavButtons();
 }
 
 async function renderAgreementPdfPage(pageNum) {
@@ -525,7 +807,9 @@ async function renderAgreementPdfPage(pageNum) {
   const base = page.getViewport({ scale: 1 });
   const maxW = Math.max(120, agreementPdfViewport.clientWidth - 8);
   const maxH = Math.max(120, agreementPdfViewport.clientHeight - 8);
-  const scale = Math.min(maxW / base.width, maxH / base.height, 2.5);
+  // Fit-to-viewport scale, then multiplied by the active zoom factor.
+  const fitScale = Math.min(maxW / base.width, maxH / base.height, 2.5);
+  const scale = Math.max(0.2, Math.min(8, fitScale * agreementZoom));
   const viewport = page.getViewport({ scale });
   const canvas = agreementPdfCanvas;
   const ctx = canvas.getContext("2d");
@@ -537,6 +821,72 @@ async function renderAgreementPdfPage(pageNum) {
   redrawOverlayForCurrentPage();
   rebuildTextLayerForCurrentPage();
   updateAgreementPageNav();
+  updateAgreementZoomUI();
+}
+
+function updateAgreementZoomUI() {
+  const label = document.getElementById("agreement-zoom-label");
+  if (label) label.textContent = `${Math.round(agreementZoom * 100)}%`;
+  if (agreementPdfViewport) {
+    agreementPdfViewport.classList.toggle("is-zoomed", agreementZoom > 1.001);
+  }
+  const outBtn = document.getElementById("agreement-zoom-out");
+  const inBtn = document.getElementById("agreement-zoom-in");
+  if (outBtn) outBtn.disabled = agreementZoom <= AGREEMENT_ZOOM_MIN + 0.001;
+  if (inBtn) inBtn.disabled = agreementZoom >= AGREEMENT_ZOOM_MAX - 0.001;
+}
+
+function clampAgreementZoom(z) {
+  return Math.max(AGREEMENT_ZOOM_MIN, Math.min(AGREEMENT_ZOOM_MAX, z));
+}
+
+/**
+ * Re-render at a new zoom level. If a focus point is provided (in viewport
+ * client coordinates), keep that exact pixel of the page under the cursor
+ * after the re-render by adjusting the viewport scroll position.
+ */
+async function setAgreementZoom(nextZoom, focusPoint) {
+  const target = clampAgreementZoom(nextZoom);
+  if (Math.abs(target - agreementZoom) < 0.001) return;
+  if (!agreementPdfDoc || !agreementPdfViewport) {
+    agreementZoom = target;
+    updateAgreementZoomUI();
+    return;
+  }
+  // Anchor: pixel under cursor in *content* coords before the change.
+  let anchorContentX = null;
+  let anchorContentY = null;
+  if (focusPoint) {
+    const vpRect = agreementPdfViewport.getBoundingClientRect();
+    const localX = focusPoint.x - vpRect.left + agreementPdfViewport.scrollLeft;
+    const localY = focusPoint.y - vpRect.top + agreementPdfViewport.scrollTop;
+    const prevW = agreementPdfCanvas?.width || 1;
+    const prevH = agreementPdfCanvas?.height || 1;
+    anchorContentX = localX / prevW; // normalized 0..1
+    anchorContentY = localY / prevH;
+  }
+  const prevZoom = agreementZoom;
+  agreementZoom = target;
+  await renderAgreementPdfPage(agreementCurrentPage);
+  if (focusPoint && anchorContentX != null && agreementPdfCanvas) {
+    const newW = agreementPdfCanvas.width;
+    const newH = agreementPdfCanvas.height;
+    const vpRect = agreementPdfViewport.getBoundingClientRect();
+    const desiredLocalX = anchorContentX * newW;
+    const desiredLocalY = anchorContentY * newH;
+    const targetScrollLeft = desiredLocalX - (focusPoint.x - vpRect.left);
+    const targetScrollTop = desiredLocalY - (focusPoint.y - vpRect.top);
+    agreementPdfViewport.scrollLeft = Math.max(0, targetScrollLeft);
+    agreementPdfViewport.scrollTop = Math.max(0, targetScrollTop);
+  } else if (target < prevZoom) {
+    // Zooming out: drift back toward center so the page stays in view.
+    requestAnimationFrame(() => {
+      const sw = agreementPdfViewport.scrollWidth - agreementPdfViewport.clientWidth;
+      const sh = agreementPdfViewport.scrollHeight - agreementPdfViewport.clientHeight;
+      if (sw > 0) agreementPdfViewport.scrollLeft = Math.min(agreementPdfViewport.scrollLeft, sw);
+      if (sh > 0) agreementPdfViewport.scrollTop = Math.min(agreementPdfViewport.scrollTop, sh);
+    });
+  }
 }
 
 function syncOverlayCanvasSize() {
@@ -587,31 +937,50 @@ function rebuildTextLayerForCurrentPage() {
   agreementTextLayer.innerHTML = "";
   const list = agreementFill.texts[agreementCurrentPage] || [];
   list.forEach((t) => {
-    const el = createTextBoxElement(t);
-    agreementTextLayer.appendChild(el);
+    const wrap = createTextBoxElement(t);
+    agreementTextLayer.appendChild(wrap);
   });
 }
 
 function createTextBoxElement(t) {
+  const outer = document.createElement("div");
+  outer.className = "agreement-text-box-outer";
+  outer.dataset.id = String(t.id);
+
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "agreement-text-box-delete";
+  del.setAttribute("aria-label", "Delete this text box");
+  del.innerHTML = "×";
+  del.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    removeTextBox(t.id);
+  });
+  ["mousedown", "pointerdown"].forEach((evt) => {
+    del.addEventListener(evt, (ev) => ev.stopPropagation());
+  });
+
   const el = document.createElement("div");
   el.className = "agreement-text-box is-committed";
   el.setAttribute("contenteditable", "true");
   el.setAttribute("spellcheck", "false");
-  el.dataset.id = String(t.id);
   el.textContent = t.text || "";
-  positionTextBoxElement(el, t);
+  outer.appendChild(del);
+  outer.appendChild(el);
+  positionTextBoxElement(outer, el, t);
   bindTextBoxEvents(el, t);
-  return el;
+  return outer;
 }
 
-function positionTextBoxElement(el, t) {
-  el.style.left = `${t.x * 100}%`;
-  el.style.top = `${t.y * 100}%`;
-  el.style.minWidth = `${Math.max(0.04, t.w) * 100}%`;
+function positionTextBoxElement(outer, inner, t) {
+  outer.style.left = `${t.x * 100}%`;
+  outer.style.top = `${t.y * 100}%`;
+  outer.style.minWidth = `${Math.max(0.04, t.w) * 100}%`;
   const stageHeight = agreementOverlayCanvas?.getBoundingClientRect().height || 600;
-  el.style.fontSize = `${Math.max(10, t.fontSize * stageHeight)}px`;
-  if (t.fontFamily) el.style.fontFamily = t.fontFamily;
-  if (t.color) el.style.color = t.color;
+  inner.style.fontSize = `${Math.max(10, t.fontSize * stageHeight)}px`;
+  if (t.fontFamily) inner.style.fontFamily = t.fontFamily;
+  if (t.color) inner.style.color = t.color;
 }
 
 function bindTextBoxEvents(el, t) {
@@ -702,6 +1071,13 @@ function closeAgreementLightbox() {
   agreementOpenBtn?.setAttribute("aria-expanded", "false");
   teardownAgreementPdf();
   if (agreementPageLabel) agreementPageLabel.textContent = "Loading…";
+  agreementZoom = 1;
+  if (agreementPdfViewport) {
+    agreementPdfViewport.classList.remove("is-zoomed", "is-panning");
+    agreementPdfViewport.scrollLeft = 0;
+    agreementPdfViewport.scrollTop = 0;
+  }
+  updateAgreementZoomUI();
   updateAgreementPageNav();
 }
 
@@ -721,10 +1097,13 @@ function setAgreementMode(mode) {
     agreementPdfStage.classList.toggle("is-fillable", agreementFill.mode === "fill");
     agreementPdfStage.dataset.tool = agreementFill.mode === "fill" ? agreementFill.tool : "";
   }
+  if (agreementFill.mode === "fill") {
+    setAgreementTool(agreementFill.tool);
+  }
 }
 
 function setAgreementTool(tool) {
-  if (!["text", "pen", "erase"].includes(tool)) return;
+  if (!["navigate", "text", "pen", "erase"].includes(tool)) return;
   agreementFill.tool = tool;
   const toolBtns = agreementLightbox?.querySelectorAll(".agreement-tool[data-tool]") || [];
   toolBtns.forEach((btn) => {
@@ -757,10 +1136,20 @@ agreementLightbox?.querySelectorAll(".agreement-tool[data-tool]").forEach((btn) 
   if (!agreementSidebar.el) return;
 
   agreementSidebar.panels = {
+    navigate: agreementSidebar.el.querySelector('[data-tool-panel="navigate"]'),
     text: agreementSidebar.el.querySelector('[data-tool-panel="text"]'),
     pen: agreementSidebar.el.querySelector('[data-tool-panel="pen"]'),
     erase: agreementSidebar.el.querySelector('[data-tool-panel="erase"]'),
   };
+
+  document.getElementById("agreement-sidebar-nav-prev")?.addEventListener("click", () => {
+    if (!agreementPdfDoc || agreementCurrentPage <= 1) return;
+    void renderAgreementPdfPage(agreementCurrentPage - 1);
+  });
+  document.getElementById("agreement-sidebar-nav-next")?.addEventListener("click", () => {
+    if (!agreementPdfDoc || agreementCurrentPage >= (agreementPdfDoc.numPages || 0)) return;
+    void renderAgreementPdfPage(agreementCurrentPage + 1);
+  });
 
   agreementSidebar.toggle?.addEventListener("click", () => {
     const collapsed = agreementSidebar.el.dataset.collapsed === "true";
@@ -987,6 +1376,7 @@ function eraseAtPoint(p) {
 
 agreementOverlayCanvas?.addEventListener("pointerdown", (ev) => {
   if (agreementFill.mode !== "fill") return;
+  if (agreementFill.tool === "navigate") return;
   const p = overlayPointFromEvent(ev);
   if (!p) return;
   if (agreementFill.tool === "pen") {
@@ -1090,16 +1480,19 @@ function addTextBoxAt(p) {
   if (!agreementFill.texts[agreementCurrentPage]) agreementFill.texts[agreementCurrentPage] = [];
   agreementFill.texts[agreementCurrentPage].push(t);
   if (!agreementTextLayer) return;
-  const el = createTextBoxElement(t);
-  el.classList.remove("is-committed");
-  agreementTextLayer.appendChild(el);
-  el.focus();
+  const outer = createTextBoxElement(t);
+  const inner = outer.querySelector(".agreement-text-box");
+  if (inner) inner.classList.remove("is-committed");
+  agreementTextLayer.appendChild(outer);
+  inner?.focus();
   const range = document.createRange();
-  range.selectNodeContents(el);
-  range.collapse(false);
-  const sel = window.getSelection();
-  sel?.removeAllRanges();
-  sel?.addRange(range);
+  if (inner) {
+    range.selectNodeContents(inner);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }
 }
 
 /* Export ------------------------------------------------------------- */
@@ -1231,9 +1624,49 @@ agreementSaveAttachBtn?.addEventListener("click", async () => {
   const original = agreementSaveAttachBtn.textContent;
   agreementSaveAttachBtn.textContent = "Saving…";
   try {
+    await ensureAgreementPdfLoaded();
+    const pageTotal = agreementPdfDoc?.numPages || 0;
+    if (!pageTotal) {
+      alert("Could not load the agreement.");
+      agreementSaveAttachBtn.textContent = original;
+      agreementSaveAttachBtn.disabled = false;
+      return;
+    }
     const urls = await exportFilledAgreement();
-    if (!urls.length) return;
-    await attachContractDataUrls(urls, { toMessage: true, toContractSlot: true });
+    if (urls.length !== pageTotal || urls.some((u) => !u)) {
+      alert(
+        `All ${pageTotal} pages must export successfully before attaching. Please try again or reload the page.`,
+      );
+      agreementSaveAttachBtn.textContent = original;
+      agreementSaveAttachBtn.disabled = false;
+      return;
+    }
+    const sigInMessage = countSignedContractPagesInContactMessage();
+    const nonContractSlots = pastedStores.contact.length - sigInMessage;
+    if (nonContractSlots + pageTotal > MAX_PASTED_IMAGES) {
+      alert(
+        `Your message allows at most ${MAX_PASTED_IMAGES} images. To attach all ${pageTotal} contract pages, remove at least ${
+          nonContractSlots + pageTotal - MAX_PASTED_IMAGES
+        } other image(s) from the project message first.`,
+      );
+      agreementSaveAttachBtn.textContent = original;
+      agreementSaveAttachBtn.disabled = false;
+      return;
+    }
+    const result = await attachContractDataUrls(urls, {
+      toMessage: true,
+      toContractSlot: true,
+      replaceSignedContractInMessage: true,
+      verifyAllContractPagesInMessage: true,
+    });
+    if (result < 0) {
+      alert(
+        `All ${pageTotal} contract pages must appear in your message before checkout. Remove other pasted images if you are at the ${MAX_PASTED_IMAGES}-image limit and try again.`,
+      );
+      agreementSaveAttachBtn.textContent = original;
+      agreementSaveAttachBtn.disabled = false;
+      return;
+    }
     agreementSaveAttachBtn.textContent = "Attached ✓";
     setTimeout(() => {
       agreementSaveAttachBtn.textContent = original;
@@ -1273,6 +1706,172 @@ agreementPageNext?.addEventListener("click", () => {
   if (!agreementPdfDoc || agreementCurrentPage >= agreementPdfDoc.numPages) return;
   void renderAgreementPdfPage(agreementCurrentPage + 1);
 });
+
+/* ============================================================
+   Agreement zoom + pan
+   - Toolbar buttons: − / + / Fit
+   - Double-click: toggle between fit (1x) and 2x at the click point
+   - Ctrl/⌘ + wheel: zoom toward the cursor
+   - Plain wheel (without modifier): native scroll (pan when zoomed)
+   - + / − / 0 keys when the dialog is open
+   - Click-drag panning when zoomed in
+   - Touch pinch on the viewport
+   ============================================================ */
+const agreementZoomIn = document.getElementById("agreement-zoom-in");
+const agreementZoomOut = document.getElementById("agreement-zoom-out");
+const agreementZoomReset = document.getElementById("agreement-zoom-reset");
+
+agreementZoomIn?.addEventListener("click", () => {
+  void setAgreementZoom(agreementZoom + AGREEMENT_ZOOM_STEP);
+});
+agreementZoomOut?.addEventListener("click", () => {
+  void setAgreementZoom(agreementZoom - AGREEMENT_ZOOM_STEP);
+});
+agreementZoomReset?.addEventListener("click", () => {
+  void setAgreementZoom(1);
+});
+
+agreementPdfViewport?.addEventListener(
+  "wheel",
+  (e) => {
+    if (!agreementPdfDoc) return;
+    if (!(e.ctrlKey || e.metaKey)) return; // Plain wheel = scroll/pan
+    e.preventDefault();
+    const dir = e.deltaY < 0 ? 1 : -1;
+    const step = AGREEMENT_ZOOM_STEP * (e.deltaMode === 0 ? 1 : 2);
+    void setAgreementZoom(agreementZoom + dir * step, { x: e.clientX, y: e.clientY });
+  },
+  { passive: false },
+);
+
+agreementPdfStage?.addEventListener("dblclick", (e) => {
+  if (!agreementPdfDoc) return;
+  // Don't hijack double-click while typing or drawing; allow zoom in Navigate mode.
+  if (agreementFill.mode === "fill" && agreementFill.tool !== "navigate") return;
+  e.preventDefault();
+  const next = agreementZoom < 1.5 ? 2 : agreementZoom < 2.75 ? 3 : 1;
+  void setAgreementZoom(next, { x: e.clientX, y: e.clientY });
+});
+
+document.addEventListener("keydown", (e) => {
+  if (!agreementLightbox?.classList.contains("active")) return;
+  // Ignore typing in text boxes inside the contract.
+  const tag = (e.target && e.target.tagName) || "";
+  if (tag === "INPUT" || tag === "TEXTAREA" || e.target?.isContentEditable) return;
+  if (e.key === "+" || e.key === "=") {
+    e.preventDefault();
+    void setAgreementZoom(agreementZoom + AGREEMENT_ZOOM_STEP);
+  } else if (e.key === "-" || e.key === "_") {
+    e.preventDefault();
+    void setAgreementZoom(agreementZoom - AGREEMENT_ZOOM_STEP);
+  } else if (e.key === "0") {
+    e.preventDefault();
+    void setAgreementZoom(1);
+  }
+});
+
+/* Click-drag to pan when zoomed: in read mode, or in Fill & sign with Navigate selected. */
+(function initAgreementPan() {
+  if (!agreementPdfViewport) return;
+  let panning = false;
+  let startX = 0;
+  let startY = 0;
+  let startScrollLeft = 0;
+  let startScrollTop = 0;
+  let pointerId = null;
+
+  agreementPdfViewport.addEventListener("pointerdown", (e) => {
+    if (agreementFill.mode === "fill" && agreementFill.tool !== "navigate") return;
+    if (e.button !== 0 && e.pointerType !== "touch") return;
+    if (agreementZoom <= 1.001) return;
+    panning = true;
+    pointerId = e.pointerId;
+    startX = e.clientX;
+    startY = e.clientY;
+    startScrollLeft = agreementPdfViewport.scrollLeft;
+    startScrollTop = agreementPdfViewport.scrollTop;
+    agreementPdfViewport.classList.add("is-panning");
+    try {
+      agreementPdfViewport.setPointerCapture(e.pointerId);
+    } catch (_) {
+      /* ignore */
+    }
+  });
+
+  agreementPdfViewport.addEventListener("pointermove", (e) => {
+    if (!panning) return;
+    agreementPdfViewport.scrollLeft = startScrollLeft - (e.clientX - startX);
+    agreementPdfViewport.scrollTop = startScrollTop - (e.clientY - startY);
+  });
+
+  function endPan() {
+    if (!panning) return;
+    panning = false;
+    agreementPdfViewport.classList.remove("is-panning");
+    if (pointerId != null) {
+      try {
+        agreementPdfViewport.releasePointerCapture(pointerId);
+      } catch (_) {
+        /* ignore */
+      }
+      pointerId = null;
+    }
+  }
+  agreementPdfViewport.addEventListener("pointerup", endPan);
+  agreementPdfViewport.addEventListener("pointercancel", endPan);
+  agreementPdfViewport.addEventListener("pointerleave", endPan);
+})();
+
+/* Two-finger pinch zoom on touch devices. */
+(function initAgreementPinch() {
+  if (!agreementPdfViewport) return;
+  const pointers = new Map();
+  let startDist = 0;
+  let startZoom = 1;
+  let startCenter = null;
+  let pinching = false;
+
+  function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  function midpoint(a, b) {
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+
+  agreementPdfViewport.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "touch") return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+      const [p1, p2] = [...pointers.values()];
+      startDist = distance(p1, p2);
+      startZoom = agreementZoom;
+      startCenter = midpoint(p1, p2);
+      pinching = true;
+    }
+  });
+
+  agreementPdfViewport.addEventListener("pointermove", (e) => {
+    if (e.pointerType !== "touch" || !pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinching && pointers.size === 2 && startDist > 0) {
+      const [p1, p2] = [...pointers.values()];
+      const dist = distance(p1, p2);
+      const factor = dist / startDist;
+      void setAgreementZoom(startZoom * factor, startCenter);
+    }
+  });
+
+  function endPinch(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) {
+      pinching = false;
+      startDist = 0;
+    }
+  }
+  agreementPdfViewport.addEventListener("pointerup", endPinch);
+  agreementPdfViewport.addEventListener("pointercancel", endPinch);
+})();
 
 window.addEventListener("resize", () => {
   if (!agreementLightbox?.classList.contains("active") || !agreementPdfDoc) return;
@@ -1429,6 +2028,147 @@ function buildPastedImageTemplateParams(formKey) {
   return out;
 }
 
+/* ============================================================
+   EmailJS payload sizing
+   ----------------------------------------------------------------
+   EmailJS rejects requests whose template variables JSON exceeds
+   ~50 KB (HTTP 413 "Variables size limit"). The signed-contract
+   pages and pasted screenshots are sent as base64 data URLs and
+   blow past that limit very quickly, so we compress them down to a
+   shared budget before they ever reach the wire.
+   ============================================================ */
+const EMAILJS_VARS_LIMIT_BYTES = 50 * 1024;
+// Leave room for the base text fields (name, email, subject, message,
+// PayPal IDs, hosting/deposit fields, etc.) plus JSON encoding overhead.
+const EMAILJS_BASE_TEXT_BUDGET_BYTES = 8 * 1024;
+const EMAILJS_IMAGE_BUDGET_BYTES =
+  EMAILJS_VARS_LIMIT_BYTES - EMAILJS_BASE_TEXT_BUDGET_BYTES;
+const EMAILJS_MIN_IMAGE_BYTES = 4 * 1024;
+
+function approximateDataUrlBytes(dataUrl) {
+  if (typeof dataUrl !== "string") return 0;
+  return dataUrl.length;
+}
+
+function loadImageFromDataUrl(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Could not decode image"));
+    img.src = dataUrl;
+  });
+}
+
+// Re-encode a data URL as a JPEG that fits under `targetBytes`. We
+// progressively shrink the longest edge and lower JPEG quality until
+// the encoded string is small enough or we hit the floor.
+async function compressDataUrlToFit(dataUrl, targetBytes) {
+  if (!dataUrl || typeof dataUrl !== "string") return dataUrl;
+  if (approximateDataUrlBytes(dataUrl) <= targetBytes) return dataUrl;
+  let img;
+  try {
+    img = await loadImageFromDataUrl(dataUrl);
+  } catch {
+    return dataUrl;
+  }
+  const naturalW = img.naturalWidth || img.width;
+  const naturalH = img.naturalHeight || img.height;
+  if (!naturalW || !naturalH) return dataUrl;
+
+  const dimensionSteps = [1400, 1100, 900, 720, 560, 440, 340, 260, 200];
+  const qualitySteps = [0.78, 0.66, 0.55, 0.45, 0.36, 0.28, 0.2];
+  let best = null;
+
+  for (const maxDim of dimensionSteps) {
+    const scale = Math.min(1, maxDim / Math.max(naturalW, naturalH));
+    const w = Math.max(1, Math.round(naturalW * scale));
+    const h = Math.max(1, Math.round(naturalH * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) continue;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    for (const q of qualitySteps) {
+      let encoded;
+      try {
+        encoded = canvas.toDataURL("image/jpeg", q);
+      } catch {
+        continue;
+      }
+      const size = approximateDataUrlBytes(encoded);
+      if (!best || size < best.size) best = { dataUrl: encoded, size };
+      if (size <= targetBytes) return encoded;
+    }
+  }
+  return best ? best.dataUrl : dataUrl;
+}
+
+// Compress a list of image data URLs so that their combined size fits
+// under `totalBudget`. The budget is shared evenly across attachments
+// and the smallest items are processed first so big ones get whatever
+// budget is left over.
+async function compressImagesForBudget(items, totalBudget) {
+  const budget = Math.max(EMAILJS_MIN_IMAGE_BYTES, totalBudget);
+  if (!items.length) return [];
+  const ordered = items
+    .map((it, idx) => ({ idx, item: it, size: approximateDataUrlBytes(it.dataUrl) }))
+    .sort((a, b) => a.size - b.size);
+  const out = new Array(items.length);
+  let remaining = budget;
+  let leftCount = ordered.length;
+  for (const entry of ordered) {
+    const share = Math.max(EMAILJS_MIN_IMAGE_BYTES, Math.floor(remaining / leftCount));
+    const compressed = await compressDataUrlToFit(entry.item.dataUrl, share);
+    out[entry.idx] = { ...entry.item, dataUrl: compressed };
+    remaining = Math.max(0, remaining - approximateDataUrlBytes(compressed));
+    leftCount -= 1;
+  }
+  return out;
+}
+
+// Build the final template params object for EmailJS, compressing any
+// attached signed contract pages and pasted images down to fit under
+// the 50 KB variables limit. Returns { params, droppedCount } so the
+// caller can warn the user if anything had to be omitted entirely.
+async function buildEmailParamsWithImages(baseParams, contractItems, pastedItems) {
+  const params = { ...baseParams };
+  const all = [];
+  contractItems.forEach((c, i) => all.push({ kind: "contract", index: i, item: c }));
+  pastedItems.forEach((p, i) => all.push({ kind: "pasted", index: i, item: p }));
+  if (!all.length) return { params, droppedCount: 0 };
+
+  const compressed = await compressImagesForBudget(
+    all.map((a) => a.item),
+    EMAILJS_IMAGE_BUDGET_BYTES,
+  );
+
+  // Greedily fill until we'd exceed the per-request limit, accounting for
+  // the actual JSON-encoded size of the params we've already added.
+  let runningSize = JSON.stringify(params).length;
+  let dropped = 0;
+  compressed.forEach((c, i) => {
+    const meta = all[i];
+    const key =
+      meta.kind === "contract"
+        ? `signed_contract_${meta.index + 1}`
+        : `pasted_image_${meta.index + 1}`;
+    const candidateAdd = key.length + c.dataUrl.length + 8; // quotes, comma, colon
+    if (runningSize + candidateAdd >= EMAILJS_VARS_LIMIT_BYTES) {
+      dropped += 1;
+      return;
+    }
+    params[key] = c.dataUrl;
+    runningSize += candidateAdd;
+  });
+  if (contractItems.length) {
+    params.signed_contract_count = String(contractItems.length);
+  }
+  return { params, droppedCount: dropped };
+}
+
 function clearPastedImages(formKey, previewId) {
   pastedStores[formKey].length = 0;
   const previewEl = document.getElementById(previewId);
@@ -1531,41 +2271,73 @@ function pushSignedContract(dataUrl, name, source) {
   });
 }
 
+function countSignedContractPagesInContactMessage() {
+  return pastedStores.contact.filter((x) => /^signed-contract-\d+\.jpe?g$/i.test(x.name || "")).length;
+}
+
 async function attachContractDataUrls(urls, opts) {
   const o = opts || {};
   const sourceKey = o.source || "signed";
+  if (o.toMessage && o.replaceSignedContractInMessage) {
+    const list = pastedStores.contact;
+    for (let i = list.length - 1; i >= 0; i -= 1) {
+      const n = list[i].name || "";
+      if (/^signed-contract-\d+\.jpe?g$/i.test(n)) {
+        list.splice(i, 1);
+      }
+    }
+  }
+
+  if (o.toMessage) {
+    const list = pastedStores.contact;
+    for (let i = 0; i < urls.length; i += 1) {
+      const url = urls[i];
+      if (!url) continue;
+      if (list.length >= MAX_PASTED_IMAGES) {
+        break;
+      }
+      pastedImageIdSeq += 1;
+      list.push({
+        id: pastedImageIdSeq,
+        dataUrl: url,
+        name: `signed-contract-${i + 1}.jpg`,
+      });
+    }
+    const previewEl = document.getElementById("contact-pasted-preview");
+    if (previewEl) renderPastedPreview("contact", previewEl);
+  }
+
+  if (o.toMessage && o.verifyAllContractPagesInMessage) {
+    const need = urls.filter((u) => !!u).length;
+    if (countSignedContractPagesInContactMessage() !== need) {
+      const list = pastedStores.contact;
+      for (let i = list.length - 1; i >= 0; i -= 1) {
+        const n = list[i].name || "";
+        if (/^signed-contract-\d+\.jpe?g$/i.test(n)) {
+          list.splice(i, 1);
+        }
+      }
+      const previewEl = document.getElementById("contact-pasted-preview");
+      if (previewEl) renderPastedPreview("contact", previewEl);
+      return -1;
+    }
+  }
+
+  let added = 0;
   if (o.toContractSlot !== false) {
     for (let i = signedContractStore.length - 1; i >= 0; i -= 1) {
       if (signedContractStore[i].source === sourceKey) signedContractStore.splice(i, 1);
     }
-  }
-  let added = 0;
-  for (let i = 0; i < urls.length; i += 1) {
-    const url = urls[i];
-    if (!url) continue;
-    if (o.toContractSlot !== false) {
+    for (let i = 0; i < urls.length; i += 1) {
+      const url = urls[i];
+      if (!url) continue;
       pushSignedContract(url, `Signed contract — page ${i + 1}`, sourceKey);
       added += 1;
     }
-    if (o.toMessage) {
-      pastedImageIdSeq += 1;
-      const list = pastedStores.contact;
-      if (list.length < MAX_PASTED_IMAGES) {
-        list.push({
-          id: pastedImageIdSeq,
-          dataUrl: url,
-          name: `signed-contract-${i + 1}.jpg`,
-        });
-      }
+    if (added) {
+      renderContractVerifyPreview();
+      syncPayPalGate();
     }
-  }
-  if (o.toMessage) {
-    const previewEl = document.getElementById("contact-pasted-preview");
-    if (previewEl) renderPastedPreview("contact", previewEl);
-  }
-  if (added) {
-    renderContractVerifyPreview();
-    syncPayPalGate();
   }
   return added;
 }
@@ -1715,11 +2487,10 @@ const PAYPAL_DEPOSIT = Math.round(PAYPAL_PRICE_REGULAR * 0.15 * 100) / 100;
 // by fees and will not show a balance or a visible bank statement line).
 const PAYPAL_TEST_AMOUNT = 1.0;
 
-// Optional recurring hosting plan prices — selecting one of these does NOT
-// add to today's PayPal checkout; it captures the buyer's preference so the
-// recurring invoice can be set up after launch.
-const HOSTING_PRICE_MONTHLY = 19.99;
-const HOSTING_PRICE_YEARLY = 199.99;
+// Recurring hosting (required with the package) — does NOT add to today's PayPal
+// checkout; it records the buyer's choice for invoicing after launch.
+const HOSTING_PRICE_MONTHLY = 20;
+const HOSTING_PRICE_YEARLY = 200;
 
 // 85% balance owed after a deposit-style payment.
 const PAYPAL_DEPOSIT_BALANCE =
@@ -1734,7 +2505,18 @@ let paypalButtonsInstance = null;
 
 function getSelectedHostingPlan() {
   const checked = document.querySelector('input[name="hosting-plan"]:checked')?.value;
-  return checked === "monthly" || checked === "yearly" ? checked : "none";
+  if (checked === "monthly" || checked === "yearly") return checked;
+  return "monthly";
+}
+
+function hostingPlanLabel(plan) {
+  if (plan === "monthly") {
+    return `Monthly hosting $${HOSTING_PRICE_MONTHLY.toFixed(2)}/mo — 1st month free, then invoiced after launch`;
+  }
+  if (plan === "yearly") {
+    return `Yearly hosting $${HOSTING_PRICE_YEARLY.toFixed(2)}/yr (invoiced after launch)`;
+  }
+  return hostingPlanLabel("monthly");
 }
 
 function getDepositScheduleDate() {
@@ -1744,12 +2526,6 @@ function getDepositScheduleDate() {
 
 function isDepositScheduleAuthorized() {
   return !!document.getElementById("deposit-schedule-authorize")?.checked;
-}
-
-function hostingPlanLabel(plan) {
-  if (plan === "monthly") return `Monthly hosting $${HOSTING_PRICE_MONTHLY.toFixed(2)}/mo`;
-  if (plan === "yearly") return `Yearly hosting $${HOSTING_PRICE_YEARLY.toFixed(2)}/yr`;
-  return "No hosting plan";
 }
 
 function computePayPalTotals() {
@@ -1762,7 +2538,7 @@ function computePayPalTotals() {
       base: amt,
       total: amt,
       seoPart: 0,
-      hosting: "none",
+      hosting: getSelectedHostingPlan(),
       depositSchedule: "",
     };
   }
@@ -1786,7 +2562,7 @@ function updatePackageHiddenField() {
   if (!p) return;
   const t = computePayPalTotals();
   if (t.mode === "test") {
-    p.value = `Checkout test · $${PAYPAL_TEST_AMOUNT.toFixed(2)}`;
+    p.value = `Checkout test · $${PAYPAL_TEST_AMOUNT.toFixed(2)} · ${hostingPlanLabel(t.hosting)}`;
     return;
   }
   const bits = ["Business website package"];
@@ -1801,7 +2577,7 @@ function updatePackageHiddenField() {
     );
   }
   if (t.seo) bits.push(`SEO +$${PAYPAL_PRICE_SEO.toFixed(2)}`);
-  if (t.hosting !== "none") bits.push(hostingPlanLabel(t.hosting));
+  bits.push(hostingPlanLabel(t.hosting));
   p.value = bits.join(" · ");
 }
 
@@ -1978,13 +2754,13 @@ function renderContactPayPalButtons() {
           } else {
             descParts.push("Derek's Website Services - website package");
           }
-          if (t.hosting !== "none") descParts.push(hostingPlanLabel(t.hosting));
+          if (t.hosting) descParts.push(hostingPlanLabel(t.hosting));
           const description = descParts.join(" | ").slice(0, 127);
           // PayPal custom_id (max 127 chars) gives us a server-side breadcrumb
           // tying this order to the hosting plan / schedule choice in case the
           // EmailJS notification is delayed or filtered.
           const customParts = [`mode=${t.mode}`];
-          if (t.hosting !== "none") customParts.push(`hosting=${t.hosting}`);
+          customParts.push(`hosting=${t.hosting}`);
           if (t.mode === "deposit" && t.depositSchedule) {
             customParts.push(`balance_date=${t.depositSchedule}`);
             customParts.push(`balance_amt=${PAYPAL_DEPOSIT_BALANCE.toFixed(2)}`);
@@ -2142,8 +2918,8 @@ function updateHostingPlanUI() {
   const hidden = document.getElementById("hosting-plan-summary");
   if (fieldset) fieldset.hidden = mode === "test";
   if (mode === "test") {
-    const noneRadio = document.querySelector('input[name="hosting-plan"][value="none"]');
-    if (noneRadio) noneRadio.checked = true;
+    const monthlyRadio = document.querySelector('input[name="hosting-plan"][value="monthly"]');
+    if (monthlyRadio) monthlyRadio.checked = true;
   }
   if (hidden) hidden.value = getSelectedHostingPlan();
 }
@@ -2368,11 +3144,6 @@ if (contactForm) {
       return;
     }
     const emailSubject = "[PURCHASE] " + (packageVal ? packageVal + " - " : "") + subject;
-    const contractParams = {};
-    signedContractStore.forEach((c, i) => {
-      contractParams[`signed_contract_${i + 1}`] = c.dataUrl;
-    });
-    contractParams.signed_contract_count = String(signedContractStore.length);
 
     const hostingPlan = payTotals.hosting;
     const hostingPrice =
@@ -2386,7 +3157,7 @@ if (contactForm) {
         ? `Automatic charge of $${PAYPAL_DEPOSIT_BALANCE.toFixed(2)} on ${formatDateLong(payTotals.depositSchedule)} (${payTotals.depositSchedule})`
         : "";
 
-    const templateParams = {
+    const baseParams = {
       type: "Purchase",
       package: packageVal,
       from_name: name,
@@ -2408,11 +3179,38 @@ if (contactForm) {
       deposit_schedule_authorized:
         payTotals.mode === "deposit" && isDepositScheduleAuthorized() ? "yes" : "no",
       contract_attached: "yes",
-      ...contractParams,
-      ...buildPastedImageTemplateParams("contact"),
     };
-    sendEmail(templateParams)
-      .then(() => {
+
+    const submitBtn = contactForm.querySelector('button[type="submit"]');
+    const submitOriginal = submitBtn ? submitBtn.textContent : "";
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Sending…";
+    }
+
+    (async () => {
+      let templateParams;
+      let droppedCount = 0;
+      try {
+        const built = await buildEmailParamsWithImages(
+          baseParams,
+          signedContractStore.slice(),
+          pastedStores.contact.slice(),
+        );
+        templateParams = built.params;
+        droppedCount = built.droppedCount;
+      } catch (prepErr) {
+        console.error("Failed to prepare email images", prepErr);
+        templateParams = { ...baseParams };
+      }
+
+      try {
+        await sendEmail(templateParams);
+        if (droppedCount > 0) {
+          alert(
+            `Your message was sent, but ${droppedCount} attached image${droppedCount === 1 ? " was" : "s were"} too large to include in the email and could not be attached. Reply to the confirmation email to send them as a follow-up.`,
+          );
+        }
         setFormCooldown();
         clearPastedImages("contact", "contact-pasted-preview");
         contactForm.reset();
@@ -2420,8 +3218,8 @@ if (contactForm) {
         if (fullRadio) fullRadio.checked = true;
         const seoCb = document.getElementById("seo-add-on");
         if (seoCb) seoCb.checked = false;
-        const noneHosting = document.querySelector('input[name="hosting-plan"][value="none"]');
-        if (noneHosting) noneHosting.checked = true;
+        const monthlyHosting = document.querySelector('input[name="hosting-plan"][value="monthly"]');
+        if (monthlyHosting) monthlyHosting.checked = true;
         const schedDate = document.getElementById("deposit-schedule-date");
         if (schedDate) schedDate.value = "";
         const schedAuth = document.getElementById("deposit-schedule-authorize");
@@ -2434,8 +3232,7 @@ if (contactForm) {
         updatePaymentTotalDisplay();
         renderContactPayPalButtons();
         showMessageSentModal();
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Email send failed", err);
         if (!EMAILJS_CONFIGURED) {
           alert("Email is not set up. Add your Template ID and Public Key in script.js (see EMAILJS_SETUP.md).");
@@ -2443,15 +3240,26 @@ if (contactForm) {
         }
         const detail = formatEmailJsError(err);
         const accountHint = emailJsAccountHelp(err);
+        const isPayloadTooLarge =
+          err && (err.status === 413 || /variables size limit|413/i.test(err.text || ""));
         alert(
           "Could not send your message.\n\n" +
             (detail ? detail + "\n\n" : "") +
+            (isPayloadTooLarge
+              ? "Your attachments are still too large for the inbox. Try removing one of the pasted screenshots and try again — your payment is already saved.\n\n"
+              : "") +
             accountHint +
             (accountHint
               ? ""
-              : `\nIn EmailJS: template Settings → service ${EMAILJS_SERVICE_ID}; variables: subject, from_name, from_email, message, type, package. Check Email History.`)
+              : `\nIn EmailJS: template Settings → service ${EMAILJS_SERVICE_ID}; variables: subject, from_name, from_email, message, type, package. Check Email History.`),
         );
-      });
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = submitOriginal;
+        }
+      }
+    })();
   });
 }
 
@@ -2474,7 +3282,7 @@ if (questionsForm) {
       return;
     }
     const emailSubject = "[QUESTION] " + subject;
-    const templateParams = {
+    const baseParams = {
       type: "Question",
       package: "",
       from_name: name,
@@ -2482,16 +3290,43 @@ if (questionsForm) {
       subject: emailSubject,
       message: message,
       to_email: NOTIFICATION_INBOX,
-      ...buildPastedImageTemplateParams("questions"),
     };
-    sendEmail(templateParams)
-      .then(() => {
+
+    const submitBtn = questionsForm.querySelector('button[type="submit"]');
+    const submitOriginal = submitBtn ? submitBtn.textContent : "";
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Sending…";
+    }
+
+    (async () => {
+      let templateParams;
+      let droppedCount = 0;
+      try {
+        const built = await buildEmailParamsWithImages(
+          baseParams,
+          [],
+          pastedStores.questions.slice(),
+        );
+        templateParams = built.params;
+        droppedCount = built.droppedCount;
+      } catch (prepErr) {
+        console.error("Failed to prepare email images", prepErr);
+        templateParams = { ...baseParams };
+      }
+
+      try {
+        await sendEmail(templateParams);
+        if (droppedCount > 0) {
+          alert(
+            `Your message was sent, but ${droppedCount} attached image${droppedCount === 1 ? " was" : "s were"} too large to include in the email and could not be attached.`,
+          );
+        }
         setFormCooldown();
         clearPastedImages("questions", "questions-pasted-preview");
         questionsForm.reset();
         showMessageSentModal();
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Email send failed", err);
         if (!EMAILJS_CONFIGURED) {
           alert("Email is not set up. Add your Template ID and Public Key in script.js (see EMAILJS_SETUP.md).");
@@ -2499,15 +3334,26 @@ if (questionsForm) {
         }
         const detail = formatEmailJsError(err);
         const accountHint = emailJsAccountHelp(err);
+        const isPayloadTooLarge =
+          err && (err.status === 413 || /variables size limit|413/i.test(err.text || ""));
         alert(
           "Could not send your message.\n\n" +
             (detail ? detail + "\n\n" : "") +
+            (isPayloadTooLarge
+              ? "Your attachments are still too large for the inbox. Remove one of the pasted screenshots and try again.\n\n"
+              : "") +
             accountHint +
             (accountHint
               ? ""
-              : `\nIn EmailJS: template Settings → service ${EMAILJS_SERVICE_ID}; variables: subject, from_name, from_email, message, type, package. Check Email History.`)
+              : `\nIn EmailJS: template Settings → service ${EMAILJS_SERVICE_ID}; variables: subject, from_name, from_email, message, type, package. Check Email History.`),
         );
-      });
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = submitOriginal;
+        }
+      }
+    })();
   });
 }
 
@@ -2995,6 +3841,13 @@ if (questionsForm) {
       groupSelector: ".cert-marquee-group",
       speed: 26,
     },
+    {
+      container: document.querySelector(".projects-marquee"),
+      track: document.querySelector(".projects-marquee-track"),
+      groupSelector: ".projects-marquee-group",
+      // Slower than the trust strip so the cards stay readable as they scroll.
+      speed: 28,
+    },
   ];
 
   // We honor prefers-reduced-motion by slowing the strips a bit instead of
@@ -3018,13 +3871,34 @@ function setupInteractiveMarquee(m, reduceMotion) {
   container.style.overflowY = "hidden";
 
   // Ensure the loop has at least 2 identical groups for seamless wrap.
+  // Clones are marked aria-hidden and any focusable descendants get
+  // tabindex=-1 so the duplicate cards do not appear in the tab order
+  // or get announced twice by assistive tech.
+  function neutralizeClone(node) {
+    if (!node) return;
+    node.setAttribute("aria-hidden", "true");
+    const focusables = node.querySelectorAll(
+      'a, button, input, select, textarea, [tabindex]',
+    );
+    focusables.forEach((el) => {
+      el.setAttribute("tabindex", "-1");
+      el.setAttribute("aria-hidden", "true");
+    });
+  }
   const groups = track.querySelectorAll(groupSelector);
   if (groups.length < 2) {
     const clone = groups[0]?.cloneNode(true);
     if (clone) {
-      clone.setAttribute("aria-hidden", "true");
+      neutralizeClone(clone);
       track.appendChild(clone);
     }
+  } else {
+    // Pre-existing clone groups (e.g. the certifications strip) get the
+    // same treatment so behavior matches the auto-cloned case.
+    groups.forEach((g, i) => {
+      if (i === 0) return;
+      neutralizeClone(g);
+    });
   }
 
   // Create handle UI below the marquee.
@@ -3053,6 +3927,13 @@ function setupInteractiveMarquee(m, reduceMotion) {
     dragging: false,
     dragStartX: 0,
     dragStartScroll: 0,
+    // Track scroll position in JS at sub-pixel precision. Browsers round
+    // `scrollLeft` reads back to integers (or fractional pixels with
+    // device-pixel granularity) which means small per-frame increments
+    // like 0.6px would otherwise disappear and the strip would never
+    // visibly move. We assign `container.scrollLeft = pos` each frame
+    // and only re-sync from the DOM when the user interacts.
+    pos: 0,
   };
 
   function singleGroupWidth() {
@@ -3063,14 +3944,11 @@ function setupInteractiveMarquee(m, reduceMotion) {
     return first.getBoundingClientRect().width + marginRight;
   }
 
-  function clampScrollWithLoop() {
+  function clampPosWithLoop() {
     const gw = singleGroupWidth();
     if (gw <= 0) return;
-    if (container.scrollLeft >= gw) {
-      container.scrollLeft -= gw;
-    } else if (container.scrollLeft < 0) {
-      container.scrollLeft += gw;
-    }
+    if (state.pos >= gw) state.pos -= gw;
+    else if (state.pos < 0) state.pos += gw;
   }
 
   function updateThumb() {
@@ -3095,8 +3973,13 @@ function setupInteractiveMarquee(m, reduceMotion) {
     state.lastTime = t;
     // The only thing that pauses the loop is an in-progress handle drag.
     if (!state.dragging && state.speed > 0) {
-      container.scrollLeft += state.speed * dt * state.direction;
-      clampScrollWithLoop();
+      state.pos += state.speed * dt * state.direction;
+      clampPosWithLoop();
+      container.scrollLeft = state.pos;
+    } else {
+      // While paused, follow whatever the user/dragger set so we resume
+      // smoothly from the new position instead of snapping back.
+      state.pos = container.scrollLeft;
     }
     updateThumb();
     state.rafId = requestAnimationFrame(tick);
@@ -3140,7 +4023,9 @@ function setupInteractiveMarquee(m, reduceMotion) {
     const dx = e.clientX - state.dragStartX;
     const next = state.dragStartScroll + dx * (max / trackW);
     container.scrollLeft = next;
-    clampScrollWithLoop();
+    state.pos = container.scrollLeft;
+    clampPosWithLoop();
+    container.scrollLeft = state.pos;
   });
   function endDrag(e) {
     if (!state.dragging) return;
@@ -3169,7 +4054,8 @@ function setupInteractiveMarquee(m, reduceMotion) {
     const tw = thumb.clientWidth;
     const fraction = Math.max(0, Math.min(1, (x - tw / 2) / Math.max(1, trackW - tw)));
     const max = Math.max(1, container.scrollWidth - container.clientWidth);
-    container.scrollLeft = fraction * max;
+    state.pos = fraction * max;
+    container.scrollLeft = state.pos;
     updateThumb();
   });
 
@@ -3178,18 +4064,22 @@ function setupInteractiveMarquee(m, reduceMotion) {
   handle.addEventListener("keydown", (e) => {
     const step = container.clientWidth * 0.2;
     if (e.key === "ArrowLeft") {
-      container.scrollLeft -= step;
-      clampScrollWithLoop();
+      state.pos -= step;
+      clampPosWithLoop();
+      container.scrollLeft = state.pos;
       e.preventDefault();
     } else if (e.key === "ArrowRight") {
-      container.scrollLeft += step;
-      clampScrollWithLoop();
+      state.pos += step;
+      clampPosWithLoop();
+      container.scrollLeft = state.pos;
       e.preventDefault();
     } else if (e.key === "Home") {
+      state.pos = 0;
       container.scrollLeft = 0;
       e.preventDefault();
     } else if (e.key === "End") {
-      container.scrollLeft = singleGroupWidth();
+      state.pos = singleGroupWidth();
+      container.scrollLeft = state.pos;
       e.preventDefault();
     }
   });
@@ -3251,7 +4141,7 @@ function setupInteractiveMarquee(m, reduceMotion) {
   if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-  const cards = document.querySelectorAll(".service-card");
+  const cards = document.querySelectorAll(".service-card, .impact-card");
   if (!cards.length) return;
 
   const MAX_DEG = 12;
@@ -3337,6 +4227,139 @@ function setupInteractiveMarquee(m, reduceMotion) {
 })();
 
 /* ============================================================
+   ImpactCardClick
+   - Stat cards on the home page are clickable shortcuts:
+     · Projects shipped → #projects
+     · Years of experience → #education-experience
+     · Certifications → #certifications
+   - Smooth scrolls to the target, supports Enter/Space for keyboard.
+   ============================================================ */
+(function initImpactCardClick() {
+  const cards = document.querySelectorAll(".impact-card[data-impact-target]");
+  if (!cards.length) return;
+
+  function go(targetSelector) {
+    if (!targetSelector) return;
+    let el = null;
+    try {
+      el = document.querySelector(targetSelector);
+    } catch (_) {
+      el = null;
+    }
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  cards.forEach((card) => {
+    card.addEventListener("click", () => go(card.dataset.impactTarget));
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        go(card.dataset.impactTarget);
+      }
+    });
+  });
+})();
+
+/* ============================================================
+   LangPopover
+   - Inline language words inside "At a glance" surface a popover with
+     the language icon when hovered or focused. Tracks the cursor for
+     a subtle parallax feel, and stays inside the viewport.
+   ============================================================ */
+(function initLangPopover() {
+  const popover = document.getElementById("lang-popover");
+  if (!popover) return;
+  const imgEl = popover.querySelector(".lang-popover-img");
+  const nameEl = popover.querySelector(".lang-popover-name");
+  const links = document.querySelectorAll(".lang-link");
+  if (!links.length || !imgEl || !nameEl) return;
+  const supportsHover =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  let activeLink = null;
+  let hideTimer = 0;
+  let popW = 200;
+  let popH = 170;
+
+  function show(link) {
+    if (activeLink === link) return;
+    activeLink = link;
+    window.clearTimeout(hideTimer);
+    const src = link.dataset.langImg;
+    const name = link.dataset.langName || link.textContent.trim();
+    if (src && imgEl.src !== src) {
+      imgEl.src = src;
+      imgEl.alt = `${name} logo`;
+    }
+    nameEl.textContent = name;
+    popover.setAttribute("aria-hidden", "false");
+    popover.classList.add("is-visible");
+    // Measure after content swap so positioning uses the real size.
+    requestAnimationFrame(() => {
+      const r = popover.getBoundingClientRect();
+      if (r.width) popW = r.width;
+      if (r.height) popH = r.height;
+      positionFor(link);
+    });
+  }
+
+  function hide() {
+    if (!activeLink) return;
+    activeLink = null;
+    popover.classList.remove("is-visible");
+    hideTimer = window.setTimeout(() => {
+      popover.setAttribute("aria-hidden", "true");
+    }, 220);
+  }
+
+  function positionFor(link, evt) {
+    const rect = link.getBoundingClientRect();
+    const cursorX = evt ? evt.clientX : rect.left + rect.width / 2;
+    // Prefer above the word; flip below if there isn't room.
+    let x = cursorX - popW / 2;
+    let y = rect.top - popH - 14;
+    let originY = "100%";
+    if (y < 12) {
+      y = rect.bottom + 14;
+      originY = "0%";
+    }
+    const margin = 8;
+    const maxX = window.innerWidth - popW - margin;
+    if (x < margin) x = margin;
+    if (x > maxX) x = maxX;
+    popover.style.transformOrigin = `50% ${originY}`;
+    popover.style.setProperty("--lang-x", `${Math.round(x)}px`);
+    popover.style.setProperty("--lang-y", `${Math.round(y)}px`);
+  }
+
+  links.forEach((link) => {
+    if (supportsHover) {
+      link.addEventListener("mouseenter", () => show(link));
+      link.addEventListener("mousemove", (e) => {
+        if (activeLink === link) positionFor(link, e);
+      });
+      link.addEventListener("mouseleave", hide);
+    }
+    link.addEventListener("focus", () => show(link));
+    link.addEventListener("blur", hide);
+    link.addEventListener("click", (e) => {
+      // Tap/click on touch (or any device) toggles the popover briefly.
+      if (activeLink === link) {
+        hide();
+      } else {
+        show(link);
+      }
+      e.preventDefault();
+    });
+  });
+
+  window.addEventListener("scroll", () => activeLink && hide(), { passive: true });
+  window.addEventListener("resize", () => activeLink && hide());
+})();
+
+/* ============================================================
    CustomCursor
    - Replaces the native pointer with a dot + trailing accent ring.
    - Expands on links/buttons (.is-link) and cards (.is-card).
@@ -3407,6 +4430,18 @@ function setupInteractiveMarquee(m, reduceMotion) {
 
   window.addEventListener("mousemove", onMove, { passive: true });
   window.addEventListener("mouseenter", onMove);
+  // Also listen to pointermove so the cursor keeps tracking during drags
+  // where the source element calls `preventDefault()` on its `pointerdown`
+  // (e.g. the marquee handle thumb). Without this, mousemove events stop
+  // firing for the duration of the drag and the custom cursor freezes.
+  window.addEventListener(
+    "pointermove",
+    (e) => {
+      if (e.pointerType && e.pointerType !== "mouse") return;
+      onMove(e);
+    },
+    { passive: true },
+  );
   document.addEventListener("mouseleave", hide);
   window.addEventListener("blur", hide);
   window.addEventListener("focus", () => {
@@ -3464,7 +4499,7 @@ function setupInteractiveMarquee(m, reduceMotion) {
   const TEXT_SELECTOR =
     'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"]), textarea, [contenteditable="true"]';
   const LINK_SELECTOR =
-    'a, button, [role="button"], summary, label[for], select, .nav-toggle, .theme-toggle, .accent-toggle, .accent-swatch, .agreement-mode-tab, .agreement-tool, .agreement-swatch, .marquee-handle__thumb, .pasted-image-remove, .contract-chip-remove, .contract-chip img, .pasted-image-chip img';
+    'a, button, [role="button"], summary, label[for], select, .nav-toggle, .theme-toggle, .accent-toggle, .accent-swatch, .agreement-mode-tab, .agreement-tool, .agreement-swatch, .marquee-handle__thumb, .pasted-image-remove, .contract-chip-remove, .contract-chip img, .pasted-image-chip img, .lang-link, .agreement-zoom-btn';
   const CARD_SELECTOR =
     '.glass-card:not(.contact-form):not(.questions-form):not(.agreement-lightbox-panel):not(.message-sent-content):not(.background-summary-card), .project-card, .service-card, .hover-card, .real-review-card, .testimonial-card, .certification-card';
   const MAGNETIC_SELECTOR = ".btn.primary, .magnetic";
