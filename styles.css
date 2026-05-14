@@ -344,7 +344,8 @@ main > #home {
     rgba(20, 22, 28, 0.96) 0%,
     rgba(14, 16, 22, 0.96) 100%
   );
-  color: var(--text);
+  /* Dark chip: always light copy (avoid undefined --text inheriting theme body color). */
+  color: rgba(244, 240, 232, 0.96);
   border: 1px solid rgba(var(--accent-rgb), 0.45);
   box-shadow:
     0 12px 28px rgba(0, 0, 0, 0.45),
@@ -388,7 +389,7 @@ main > #home {
 }
 
 .fab-service-deal__main {
-  color: var(--text);
+  color: rgba(244, 240, 232, 0.98);
 }
 
 /* Deal bubble only while the CTA link is hovered or keyboard-focused,
@@ -1220,7 +1221,7 @@ main > #home {
    ============================================================ */
 .impact-stats {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   padding-top: clamp(56px, 8vw, 96px);
   padding-bottom: clamp(48px, 7vw, 80px);
 }
@@ -3157,8 +3158,8 @@ body.has-custom-cursor .impact-card.is-tilting {
 }
 
 .deposit-schedule__field input[type="date"] {
-  background: var(--bg-elev);
-  color: var(--text);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -32,11 +32,10 @@
         try {
           var k = "dws-theme";
           var stored = localStorage.getItem(k);
-          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          var theme = stored === "light" || stored === "dark" ? stored : prefersDark ? "dark" : "light";
+          var theme = stored === "light" || stored === "dark" ? stored : "light";
           document.documentElement.setAttribute("data-theme", theme);
         } catch (e) {
-          document.documentElement.setAttribute("data-theme", "dark");
+          document.documentElement.setAttribute("data-theme", "light");
         }
         try {
           var ak = "dws-accent";
@@ -295,14 +294,14 @@
               <p
                 class="impact-value"
                 data-counter
-                data-counter-target="7"
+                data-counter-target="8"
                 data-counter-decimals="1"
                 data-counter-duration="2800"
                 data-counter-suffix="+"
               >
                 <span class="impact-value-num">0.0</span><span class="impact-value-suffix">+</span>
               </p>
-              <p class="impact-foot">Front-end fundamentals through modern frameworks.</p>
+              <p class="impact-foot">Front-end, back-end APIs, databases, and full-stack certs.</p>
             </article>
           </div>
         </div>
@@ -811,6 +810,21 @@
                       <img src="Asset/React.png" alt="React certification" loading="lazy" />
                     </button>
                   </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" aria-label="View larger SQL certification">
+                      <img src="Asset/SQL.png" alt="SQL certification" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" aria-label="View larger full-stack development certification">
+                      <img src="Asset/FullStackImage.png" alt="Full-stack development certification" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" aria-label="View larger back-end development certification">
+                      <img src="Asset/BackEndDev.png" alt="Back-end development certification" loading="lazy" />
+                    </button>
+                  </div>
                 </div>
                 <div class="cert-marquee-group cert-marquee-group--clone" aria-hidden="true">
                   <div class="certification-card glass-card">
@@ -836,6 +850,21 @@
                   <div class="certification-card glass-card">
                     <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger React certification">
                       <img src="Asset/React.png" alt="" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger SQL certification">
+                      <img src="Asset/SQL.png" alt="" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger full-stack development certification">
+                      <img src="Asset/FullStackImage.png" alt="" loading="lazy" />
+                    </button>
+                  </div>
+                  <div class="certification-card glass-card">
+                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger back-end development certification">
+                      <img src="Asset/BackEndDev.png" alt="" loading="lazy" />
                     </button>
                   </div>
                 </div>

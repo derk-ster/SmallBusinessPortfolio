@@ -25,10 +25,6 @@ function readStoredTheme() {
   }
 }
 
-function systemPrefersDark() {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
 function applyDocumentTheme(theme) {
   if (theme !== "light" && theme !== "dark") return;
   document.documentElement.setAttribute("data-theme", theme);
@@ -41,7 +37,7 @@ function applyDocumentTheme(theme) {
 function resolveThemeForInit() {
   const stored = readStoredTheme();
   if (stored === "light" || stored === "dark") return stored;
-  return systemPrefersDark() ? "dark" : "light";
+  return "light";
 }
 
 function initThemeControls() {
@@ -50,7 +46,7 @@ function initThemeControls() {
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
   mq.addEventListener("change", () => {
     if (readStoredTheme()) return;
-    applyDocumentTheme(systemPrefersDark() ? "dark" : "light");
+    applyDocumentTheme("light");
   });
 
   themeToggle?.addEventListener("click", () => {
