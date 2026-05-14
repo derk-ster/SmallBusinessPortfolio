@@ -2350,7 +2350,8 @@ function syncPayPalGate() {
   if (isContractAttached()) {
     container.hidden = false;
     if (typeof renderContactPayPalButtons === "function") {
-      renderContactPayPalButtons();
+      // Re-attaching or updating the contract must not wipe a completed PayPal capture.
+      renderContactPayPalButtons({ resetPayment: false });
     }
   } else {
     container.hidden = true;
@@ -2680,14 +2681,15 @@ function loadPayPalSdk() {
   return paypalSdkPromise;
 }
 
-function renderContactPayPalButtons() {
+function renderContactPayPalButtons(opts) {
+  const resetPayment = opts?.resetPayment !== false;
   const container = document.getElementById("paypal-button-container");
   const missing = document.getElementById("paypal-config-missing");
   const locked = document.getElementById("payment-locked-msg");
   if (!container) return;
 
   destroyPayPalButtons();
-  clearContactPaymentState();
+  if (resetPayment) clearContactPaymentState();
 
   if (!isContractAttached()) {
     container.hidden = true;
@@ -2795,13 +2797,15 @@ function renderContactPayPalButtons() {
         onCancel() {
           // User closed the PayPal popup or backed out without paying.
           // Re-render the buttons so they're not stuck on a single funding source.
-          renderContactPayPalButtons();
+          const paid = document.getElementById("paypal-paid")?.value === "yes";
+          renderContactPayPalButtons({ resetPayment: !paid });
         },
         onError(err) {
           console.error(err);
           alert("PayPal could not complete. Check the console or try again.");
           // Re-render so the user can pick a different funding source.
-          renderContactPayPalButtons();
+          const paid = document.getElementById("paypal-paid")?.value === "yes";
+          renderContactPayPalButtons({ resetPayment: !paid });
         },
       });
       return paypalButtonsInstance.render("#paypal-button-container");
