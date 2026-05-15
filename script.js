@@ -453,12 +453,34 @@ renderRealReviews();
 const portraitLightbox = document.getElementById("portrait-lightbox");
 const portraitLightboxImg = portraitLightbox?.querySelector("img");
 const portraitLightboxClose = portraitLightbox?.querySelector(".portrait-lightbox-close");
+const portraitLightboxPrev = portraitLightbox?.querySelector(".portrait-lightbox-prev");
+const portraitLightboxNext = portraitLightbox?.querySelector(".portrait-lightbox-next");
 const portraitTrigger = document.querySelector(".portrait-trigger");
+
+/** When set, image lightbox shows prev/next for the certification strip. */
+let lightboxCertGallery = null;
 
 /* FLIP-style open animation: the image starts at the source rect (the
    thumbnail the user clicked on) and animates up to its rest position
    inside the lightbox. Closing reverses the same motion. */
 let lightboxOriginRect = null;
+const lbTimers = new Set();
+function lbClearTimers() {
+  lbTimers.forEach((id) => window.clearTimeout(id));
+  lbTimers.clear();
+}
+
+/** Cleared whenever a new open/close cycle starts so listeners never stack. */
+let portraitCloseTransitionEnd = null;
+
+function lbAfter(ms, cb) {
+  const id = window.setTimeout(() => {
+    lbTimers.delete(id);
+    cb();
+  }, ms);
+  lbTimers.add(id);
+}
+
 const LIGHTBOX_ANIM_MS = 460;
 const LIGHTBOX_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const reduceMotionForLightbox =
@@ -482,13 +504,70 @@ function getLightboxOriginFromEvent(e, fallbackEl) {
   return null;
 }
 
-function openImageLightbox(src, alt, originRect) {
+function syncPortraitLightboxCertNav() {
+  const show =
+    !!(lightboxCertGallery &&
+      lightboxCertGallery.items &&
+      lightboxCertGallery.items.length > 1 &&
+      portraitLightbox?.classList.contains("active"));
+  if (portraitLightboxPrev) {
+    portraitLightboxPrev.hidden = !show;
+    portraitLightboxPrev.setAttribute("aria-hidden", show ? "false" : "true");
+  }
+  if (portraitLightboxNext) {
+    portraitLightboxNext.hidden = !show;
+    portraitLightboxNext.setAttribute("aria-hidden", show ? "false" : "true");
+  }
+}
+
+function showCertAtLightboxIndex(nextIndex) {
+  if (!lightboxCertGallery || !portraitLightboxImg) return;
+  const { items } = lightboxCertGallery;
+  if (!items.length) return;
+  let i = ((nextIndex % items.length) + items.length) % items.length;
+  lightboxCertGallery.index = i;
+  const cur = items[i];
+  lbClearTimers();
+  if (portraitCloseTransitionEnd && portraitLightboxImg) {
+    portraitLightboxImg.removeEventListener("transitionend", portraitCloseTransitionEnd);
+    portraitCloseTransitionEnd = null;
+  }
+  portraitLightboxImg.dataset.lbClosing = "0";
+  portraitLightboxImg.style.transition = "";
+  portraitLightboxImg.style.removeProperty("transform");
+  portraitLightboxImg.style.removeProperty("opacity");
+  portraitLightbox.classList.remove("is-animating", "is-closing");
+  portraitLightboxImg.src = cur.src;
+  portraitLightboxImg.alt = `${cur.alt} (larger)`;
+  portraitLightboxImg.style.removeProperty("visibility");
+}
+
+function openImageLightbox(src, alt, originRect, certIndex) {
   if (!portraitLightbox || !portraitLightboxImg || !src) return;
+  if (typeof certIndex === "number" && certIndex >= 0) {
+    const imgs = document.querySelectorAll(".certification-trigger img");
+    const items = [];
+    imgs.forEach((im) => {
+      if (im?.src) items.push({ src: im.src, alt: im.alt || "Certification" });
+    });
+    lightboxCertGallery = items.length > 0 ? { items, index: Math.min(certIndex, items.length - 1) } : null;
+  } else {
+    lightboxCertGallery = null;
+  }
+  lbClearTimers();
+  if (portraitCloseTransitionEnd && portraitLightboxImg) {
+    portraitLightboxImg.removeEventListener("transitionend", portraitCloseTransitionEnd);
+    portraitCloseTransitionEnd = null;
+  }
+  portraitLightboxImg.dataset.lbClosing = "0";
+  portraitLightbox.classList.remove("is-closing");
+  portraitLightboxImg.style.removeProperty("visibility");
   lightboxOriginRect = originRect || null;
   portraitLightboxImg.src = src;
   portraitLightboxImg.alt = alt || "";
   portraitLightbox.classList.add("active");
   portraitLightbox.setAttribute("aria-hidden", "false");
+  syncPortraitLightboxCertNav();
 
   if (reduceMotionForLightbox || !originRect) return;
 
@@ -516,17 +595,20 @@ function openImageLightbox(src, alt, originRect) {
     void portraitLightboxImg.offsetHeight;
 
     /* SECOND: enable transform transition only, then move to layout position. */
-    portraitLightboxImg.style.transition = `transform ${LIGHTBOX_ANIM_MS}ms ${LIGHTBOX_EASE}`;
+    portraitLightboxImg.style.transition = `transform ${LIGHTBOX_ANIM_MS}ms ${LIGHTBOX_EASE}, opacity 220ms ease`;
     portraitLightbox.classList.add("is-animating");
     requestAnimationFrame(() => {
       portraitLightboxImg.style.transform = "";
     });
 
-    window.setTimeout(() => {
+    lbAfter(LIGHTBOX_ANIM_MS + 60, () => {
+      if (!portraitLightbox?.classList.contains("active")) return;
+      if (portraitLightboxImg.dataset.lbClosing === "1") return;
       portraitLightbox.classList.remove("is-animating");
       portraitLightboxImg.style.transition = "";
       portraitLightboxImg.style.removeProperty("transform");
-    }, LIGHTBOX_ANIM_MS + 50);
+      portraitLightboxImg.style.removeProperty("opacity");
+    });
   };
 
   if (portraitLightboxImg.complete && portraitLightboxImg.naturalWidth) {
@@ -539,46 +621,94 @@ function openImageLightbox(src, alt, originRect) {
 function closeImageLightbox() {
   if (!portraitLightbox || !portraitLightboxImg) return;
 
+  lbClearTimers();
+  if (portraitCloseTransitionEnd && portraitLightboxImg) {
+    portraitLightboxImg.removeEventListener("transitionend", portraitCloseTransitionEnd);
+    portraitCloseTransitionEnd = null;
+  }
+  portraitLightboxImg.dataset.lbClosing = "1";
+
+  let finalized = false;
+
   const finalize = () => {
-    portraitLightbox.classList.remove("active", "is-animating");
+    if (finalized) return;
+    finalized = true;
+    lbClearTimers();
+    if (portraitCloseTransitionEnd && portraitLightboxImg) {
+      portraitLightboxImg.removeEventListener("transitionend", portraitCloseTransitionEnd);
+      portraitCloseTransitionEnd = null;
+    }
+    /* Avoid a bright/dark “flash”: never reset opacity on the <img> before src is
+       cleared (empty image at opacity:1 reads as a white pop). Hide, clear, then strip. */
+    portraitLightboxImg.style.visibility = "hidden";
+    portraitLightboxImg.src = "";
+    portraitLightboxImg.alt = "";
+    portraitLightbox.classList.remove("is-animating", "is-closing");
+    portraitLightbox.classList.remove("active");
     portraitLightbox.setAttribute("aria-hidden", "true");
     portraitLightboxImg.style.transition = "";
     portraitLightboxImg.style.removeProperty("transform");
     portraitLightboxImg.style.removeProperty("opacity");
     portraitLightboxImg.style.removeProperty("transformOrigin");
-    portraitLightboxImg.src = "";
-    portraitLightboxImg.alt = "";
+    portraitLightboxImg.style.removeProperty("visibility");
+    portraitLightboxImg.dataset.lbClosing = "0";
+    lightboxCertGallery = null;
+    syncPortraitLightboxCertNav();
     lightboxOriginRect = null;
   };
 
-  if (reduceMotionForLightbox || !lightboxOriginRect) {
+  if (reduceMotionForLightbox || !portraitLightboxImg.src) {
     finalize();
     return;
   }
+
+  portraitLightbox.classList.add("is-closing", "is-animating");
+
+  const runCloseAnimation = (dx, dy, s) => {
+    portraitLightboxImg.style.transformOrigin = "50% 50%";
+    portraitLightboxImg.style.transition = "none";
+    portraitLightboxImg.style.transform = "";
+    portraitLightboxImg.style.opacity = "1";
+
+    portraitLightboxImg.getBoundingClientRect();
+
+    requestAnimationFrame(() => {
+      portraitLightboxImg.style.transition = `transform ${LIGHTBOX_ANIM_MS}ms ${LIGHTBOX_EASE}, opacity ${LIGHTBOX_ANIM_MS}ms ${LIGHTBOX_EASE}`;
+      portraitLightboxImg.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${s.toFixed(4)})`;
+      portraitLightboxImg.style.opacity = "0";
+
+      portraitCloseTransitionEnd = (ev) => {
+        if (ev.target !== portraitLightboxImg || ev.propertyName !== "transform") return;
+        finalize();
+      };
+      portraitLightboxImg.addEventListener("transitionend", portraitCloseTransitionEnd);
+
+      lbAfter(LIGHTBOX_ANIM_MS + 100, () => {
+        finalize();
+      });
+    });
+  };
+
   const dest = portraitLightboxImg.getBoundingClientRect();
-  const origin = lightboxOriginRect;
   if (!dest.width || !dest.height) {
     finalize();
     return;
   }
-  const sx = Math.max(0.04, origin.width / dest.width);
-  const sy = Math.max(0.04, origin.height / dest.height);
-  const s = Math.min(sx, sy);
-  const dx = origin.left + origin.width / 2 - (dest.left + dest.width / 2);
-  const dy = origin.top + origin.height / 2 - (dest.top + dest.height / 2);
 
-  portraitLightboxImg.style.transformOrigin = "50% 50%";
-  portraitLightboxImg.style.transition = "none";
-  portraitLightboxImg.style.transform = "";
-  void portraitLightboxImg.offsetHeight;
+  if (lightboxOriginRect) {
+    const origin = lightboxOriginRect;
+    const sx = Math.max(0.04, origin.width / dest.width);
+    const sy = Math.max(0.04, origin.height / dest.height);
+    const s = Math.min(sx, sy);
+    const dx = origin.left + origin.width / 2 - (dest.left + dest.width / 2);
+    const dy = origin.top + origin.height / 2 - (dest.top + dest.height / 2);
+    runCloseAnimation(dx, dy, s);
+    return;
+  }
 
-  portraitLightboxImg.style.transition = `transform ${LIGHTBOX_ANIM_MS}ms ${LIGHTBOX_EASE}`;
-  portraitLightbox.classList.add("is-animating");
-  requestAnimationFrame(() => {
-    portraitLightboxImg.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${s.toFixed(4)})`;
-  });
-
-  window.setTimeout(finalize, LIGHTBOX_ANIM_MS + 50);
+  /* No thumbnail origin (e.g. pasted contract) — still shrink + fade like the open motion. */
+  const s = Math.max(0.06, Math.min(0.55, (96 / dest.width) * 0.9));
+  runCloseAnimation(0, window.innerHeight * 0.06, s);
 }
 
 if (portraitTrigger && portraitLightbox && portraitLightboxImg) {
@@ -594,7 +724,7 @@ if (portraitTrigger && portraitLightbox && portraitLightboxImg) {
   });
 }
 
-document.querySelectorAll(".certification-trigger").forEach((btn) => {
+document.querySelectorAll(".certification-trigger").forEach((btn, certIdx) => {
   btn.addEventListener("click", (e) => {
     const img = btn.querySelector("img");
     if (img?.src) {
@@ -602,6 +732,7 @@ document.querySelectorAll(".certification-trigger").forEach((btn) => {
         img.src,
         `${img.alt || "Certification"} (larger)`,
         getLightboxOriginFromEvent(e, btn),
+        certIdx,
       );
     }
   });
@@ -612,6 +743,29 @@ if (portraitLightboxClose) {
     closeImageLightbox();
   });
 }
+
+portraitLightboxPrev?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (!lightboxCertGallery) return;
+  showCertAtLightboxIndex(lightboxCertGallery.index - 1);
+});
+
+portraitLightboxNext?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (!lightboxCertGallery) return;
+  showCertAtLightboxIndex(lightboxCertGallery.index + 1);
+});
+
+document.addEventListener("keydown", (e) => {
+  if (!portraitLightbox?.classList.contains("active") || !lightboxCertGallery) return;
+  if (e.key === "ArrowLeft") {
+    e.preventDefault();
+    showCertAtLightboxIndex(lightboxCertGallery.index - 1);
+  } else if (e.key === "ArrowRight") {
+    e.preventDefault();
+    showCertAtLightboxIndex(lightboxCertGallery.index + 1);
+  }
+});
 
 if (portraitLightbox) {
   portraitLightbox.addEventListener("click", (e) => {
@@ -679,6 +833,139 @@ const agreementSidebar = {
 const agreementEraserCursor = {
   el: null,
 };
+
+function agreementPageHasUserMarks(pageNum) {
+  const strokes = agreementFill.strokes[pageNum];
+  if (strokes && strokes.length) return true;
+  const texts = agreementFill.texts[pageNum];
+  return !!(texts && texts.some((t) => (t.text || "").trim()));
+}
+
+/** For a 3-page agreement: require marks on page 1 and page 3; shorter PDFs use page 1 and last page. */
+function agreementSigningPagesRequirementMet() {
+  const total = agreementPdfDoc?.numPages || 0;
+  if (total < 1) return false;
+  if (!agreementPageHasUserMarks(1)) return false;
+  const secondPage = total >= 3 ? 3 : total;
+  return agreementPageHasUserMarks(secondPage);
+}
+
+function agreementSigningGateHelpText() {
+  const total = agreementPdfDoc?.numPages || 0;
+  if (total < 1) return "Load the agreement first.";
+  if (total === 1) {
+    return "Type or sign on page 1 before attaching.";
+  }
+  if (total === 2) {
+    return "Add typing or a signature on page 1 and page 2 before attaching.";
+  }
+  return "Add typing or a signature on page 1 and page 3 before attaching.";
+}
+
+/** Rich toast when Add / Save is blocked; includes HTML with <strong> for emphasis animation. */
+function getAgreementActionBlockedInfo() {
+  const pdfReady = !!agreementPdfDoc;
+  const inFill = agreementFill.mode === "fill";
+  if (!pdfReady) {
+    return { emphasis: false, html: false, text: "Load the agreement first." };
+  }
+  if (!inFill) {
+    return {
+      emphasis: false,
+      html: false,
+      text: "Switch to Fill & sign to add your typing or signature.",
+    };
+  }
+  if (!agreementSigningPagesRequirementMet()) {
+    const total = agreementPdfDoc?.numPages || 0;
+    if (total === 1) {
+      return {
+        emphasis: true,
+        html: true,
+        htmlBody: `You need typing or a signature on <strong>page 1</strong> before <strong>Add to message</strong> or <strong>Save &amp; attach to payment</strong>.`,
+      };
+    }
+    if (total === 2) {
+      return {
+        emphasis: true,
+        html: true,
+        htmlBody: `You need typing or a signature on <strong>page 1</strong> and <strong>page 2</strong> before <strong>Add to message</strong> or <strong>Save &amp; attach to payment</strong>.`,
+      };
+    }
+    return {
+      emphasis: true,
+      html: true,
+      htmlBody: `You need typing or a signature on <strong>page 1</strong> and <strong>page 3</strong> before <strong>Add to message</strong> or <strong>Save &amp; attach to payment</strong>.`,
+    };
+  }
+  return null;
+}
+
+let agreementGateToastAutoCloseTimer = 0;
+function showAgreementGateToast(info) {
+  const toast = document.getElementById("agreement-gate-toast");
+  const textEl = document.getElementById("agreement-gate-toast-text");
+  const panel = document.getElementById("agreement-gate-toast-panel");
+  if (!toast || !textEl || !panel || !info) return;
+  window.clearTimeout(agreementGateToastAutoCloseTimer);
+  if (info.html && info.htmlBody) {
+    textEl.innerHTML = info.htmlBody;
+  } else {
+    textEl.textContent = info.text || "";
+  }
+  textEl.classList.toggle("is-emphasis", !!info.emphasis);
+  panel.classList.toggle("is-emphasis", !!info.emphasis);
+  toast.removeAttribute("hidden");
+  toast.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => {
+    toast.classList.add("is-visible");
+  });
+  agreementGateToastAutoCloseTimer = window.setTimeout(() => {
+    hideAgreementGateToast();
+  }, 5200);
+}
+
+function hideAgreementGateToast() {
+  const toast = document.getElementById("agreement-gate-toast");
+  if (!toast) return;
+  window.clearTimeout(agreementGateToastAutoCloseTimer);
+  agreementGateToastAutoCloseTimer = 0;
+  toast.classList.remove("is-visible");
+  toast.setAttribute("aria-hidden", "true");
+  window.setTimeout(() => {
+    if (!toast.classList.contains("is-visible")) {
+      toast.setAttribute("hidden", "");
+    }
+  }, 320);
+}
+
+(function initAgreementGateToast() {
+  const toast = document.getElementById("agreement-gate-toast");
+  const closeBtn = document.getElementById("agreement-gate-toast-close");
+  if (!toast) return;
+  closeBtn?.addEventListener("click", () => hideAgreementGateToast());
+  toast.addEventListener("click", (e) => {
+    if (e.target === toast) hideAgreementGateToast();
+  });
+})();
+
+function updateAgreementExportGates() {
+  const attachBtn = agreementAttachMessageBtn;
+  const saveBtn = agreementSaveAttachBtn;
+  const met = agreementSigningPagesRequirementMet();
+  const inFill = agreementFill.mode === "fill";
+  const pdfReady = !!agreementPdfDoc;
+  const ok = inFill && pdfReady && met;
+  const msg = ok ? "" : !pdfReady ? "Load the agreement first." : !inFill ? "Switch to Fill & sign." : agreementSigningGateHelpText();
+  if (attachBtn) {
+    attachBtn.disabled = !ok;
+    attachBtn.title = msg;
+  }
+  if (saveBtn) {
+    saveBtn.disabled = !ok;
+    saveBtn.title = msg;
+  }
+}
 
 function agreementHasMarks() {
   for (const k in agreementFill.strokes) {
@@ -818,6 +1105,7 @@ async function renderAgreementPdfPage(pageNum) {
   rebuildTextLayerForCurrentPage();
   updateAgreementPageNav();
   updateAgreementZoomUI();
+  updateAgreementExportGates();
 }
 
 function updateAgreementZoomUI() {
@@ -992,6 +1280,7 @@ function bindTextBoxEvents(el, t) {
       return;
     }
     el.classList.add("is-committed");
+    updateAgreementExportGates();
   });
   el.addEventListener("keydown", (ev) => {
     if (ev.key === "Enter" && !ev.shiftKey) {
@@ -1036,6 +1325,7 @@ function removeTextBox(id) {
   if (i >= 0) list.splice(i, 1);
   const node = agreementTextLayer?.querySelector(`[data-id="${id}"]`);
   if (node && node.parentNode) node.parentNode.removeChild(node);
+  updateAgreementExportGates();
 }
 
 async function openAgreementLightbox(opts) {
@@ -1096,6 +1386,7 @@ function setAgreementMode(mode) {
   if (agreementFill.mode === "fill") {
     setAgreementTool(agreementFill.tool);
   }
+  updateAgreementExportGates();
 }
 
 function setAgreementTool(tool) {
@@ -1284,6 +1575,7 @@ agreementClearPageBtn?.addEventListener("click", () => {
   agreementFill.texts[page] = [];
   redrawOverlayForCurrentPage();
   rebuildTextLayerForCurrentPage();
+  updateAgreementExportGates();
 });
 
 /* Pen / text pointer handlers on the overlay canvas ------------------- */
@@ -1442,15 +1734,19 @@ function endStroke(ev) {
       }
     }
   }
-  if (!agreementFill.isDrawing) return;
-  agreementFill.isDrawing = false;
-  agreementFill.currentStroke = null;
-  if (ev && ev.pointerId !== undefined) {
-    try {
-      agreementOverlayCanvas.releasePointerCapture?.(ev.pointerId);
-    } catch (_) {
-      /* noop */
+  if (agreementFill.isDrawing) {
+    agreementFill.isDrawing = false;
+    agreementFill.currentStroke = null;
+    if (ev && ev.pointerId !== undefined) {
+      try {
+        agreementOverlayCanvas.releasePointerCapture?.(ev.pointerId);
+      } catch (_) {
+        /* noop */
+      }
     }
+  }
+  if (agreementLightbox?.classList.contains("active")) {
+    updateAgreementExportGates();
   }
 }
 
@@ -1595,13 +1891,22 @@ async function exportFilledAgreement() {
 }
 
 agreementAttachMessageBtn?.addEventListener("click", async () => {
+  const blocked = getAgreementActionBlockedInfo();
+  if (blocked) {
+    showAgreementGateToast(blocked);
+    return;
+  }
   agreementAttachMessageBtn.disabled = true;
   const original = agreementAttachMessageBtn.textContent;
   agreementAttachMessageBtn.textContent = "Adding…";
   try {
     const urls = await exportFilledAgreement();
     if (!urls.length) return;
-    await attachContractDataUrls(urls, { toMessage: true, toContractSlot: false });
+    await attachContractDataUrls(urls, {
+      toMessage: true,
+      toContractSlot: false,
+      replaceSignedContractInMessage: true,
+    });
     agreementAttachMessageBtn.textContent = "Added to message ✓";
     setTimeout(() => {
       agreementAttachMessageBtn.textContent = original;
@@ -1616,6 +1921,11 @@ agreementAttachMessageBtn?.addEventListener("click", async () => {
 });
 
 agreementSaveAttachBtn?.addEventListener("click", async () => {
+  const blocked = getAgreementActionBlockedInfo();
+  if (blocked) {
+    showAgreementGateToast(blocked);
+    return;
+  }
   agreementSaveAttachBtn.disabled = true;
   const original = agreementSaveAttachBtn.textContent;
   agreementSaveAttachBtn.textContent = "Saving…";
@@ -1879,6 +2189,12 @@ window.addEventListener("resize", () => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+  const gateToast = document.getElementById("agreement-gate-toast");
+  if (gateToast?.classList.contains("is-visible")) {
+    hideAgreementGateToast();
+    e.preventDefault();
+    return;
+  }
   if (agreementLightbox?.classList.contains("active")) {
     closeAgreementLightbox();
   }
@@ -2019,7 +2335,7 @@ function buildPastedImageTemplateParams(formKey) {
   const list = pastedStores[formKey];
   const out = {};
   list.forEach((item, i) => {
-    out[`pasted_image_${i + 1}`] = item.dataUrl;
+    out[`pasted_image_${i + 1}`] = emailJsAttachmentParamValue(item.dataUrl);
   });
   return out;
 }
@@ -2044,6 +2360,23 @@ const EMAILJS_MIN_IMAGE_BYTES = 4 * 1024;
 function approximateDataUrlBytes(dataUrl) {
   if (typeof dataUrl !== "string") return 0;
   return dataUrl.length;
+}
+
+/**
+ * EmailJS dynamic "Variable Attachment" values work reliably as raw base64
+ * (no `data:mime;base64,` prefix). Sending the full data URL can break or
+ * corrupt files in Gmail, and it must match the template **Content type**
+ * (this site outputs JPEG — use JPEG in the dashboard, not PNG).
+ */
+function emailJsAttachmentParamValue(dataUrl) {
+  if (!dataUrl || typeof dataUrl !== "string") return dataUrl;
+  const comma = dataUrl.indexOf(",");
+  if (comma === -1) return dataUrl;
+  const meta = dataUrl.slice(0, comma).toLowerCase();
+  if (meta.startsWith("data:") && meta.includes("base64")) {
+    return dataUrl.slice(comma + 1);
+  }
+  return dataUrl;
 }
 
 function loadImageFromDataUrl(dataUrl) {
@@ -2071,7 +2404,7 @@ async function compressDataUrlToFit(dataUrl, targetBytes) {
   const naturalH = img.naturalHeight || img.height;
   if (!naturalW || !naturalH) return dataUrl;
 
-  const dimensionSteps = [1400, 1100, 900, 720, 560, 440, 340, 260, 200];
+  const dimensionSteps = [1400, 1100, 900, 720, 560, 440, 340, 260, 220, 200, 180];
   const qualitySteps = [0.78, 0.66, 0.55, 0.45, 0.36, 0.28, 0.2];
   let best = null;
 
@@ -2102,16 +2435,25 @@ async function compressDataUrlToFit(dataUrl, targetBytes) {
   return best ? best.dataUrl : dataUrl;
 }
 
-// Compress a list of image data URLs so that their combined size fits
-// under `totalBudget`. The budget is shared evenly across attachments
-// and the smallest items are processed first so big ones get whatever
-// budget is left over.
-async function compressImagesForBudget(items, totalBudget) {
+// Compress a list of image data URLs so that their combined encoded size
+// stays under `totalBudget`. With `sortSmallestFirst` (default), smallest
+// sources are compressed first so more items tend to fit (good for loose
+// pastes). With `preserveOrder: true`, array order is kept — use for
+// multi-page contracts so page 1..N stay meaningful after compression.
+async function compressImagesForBudget(items, totalBudget, options = {}) {
+  const { preserveOrder = false, sortSmallestFirst = true } = options;
   const budget = Math.max(EMAILJS_MIN_IMAGE_BYTES, totalBudget);
   if (!items.length) return [];
-  const ordered = items
-    .map((it, idx) => ({ idx, item: it, size: approximateDataUrlBytes(it.dataUrl) }))
-    .sort((a, b) => a.size - b.size);
+  const entries = items.map((it, idx) => ({
+    idx,
+    item: it,
+    size: approximateDataUrlBytes(it.dataUrl),
+  }));
+  const ordered = preserveOrder
+    ? entries
+    : sortSmallestFirst
+      ? entries.sort((a, b) => a.size - b.size)
+      : entries;
   const out = new Array(items.length);
   let remaining = budget;
   let leftCount = ordered.length;
@@ -2131,38 +2473,70 @@ async function compressImagesForBudget(items, totalBudget) {
 // caller can warn the user if anything had to be omitted entirely.
 async function buildEmailParamsWithImages(baseParams, contractItems, pastedItems) {
   const params = { ...baseParams };
-  const all = [];
-  contractItems.forEach((c, i) => all.push({ kind: "contract", index: i, item: c }));
-  pastedItems.forEach((p, i) => all.push({ kind: "pasted", index: i, item: p }));
-  if (!all.length) return { params, droppedCount: 0 };
-
-  const compressed = await compressImagesForBudget(
-    all.map((a) => a.item),
-    EMAILJS_IMAGE_BUDGET_BYTES,
-  );
-
-  // Greedily fill until we'd exceed the per-request limit, accounting for
-  // the actual JSON-encoded size of the params we've already added.
-  let runningSize = JSON.stringify(params).length;
-  let dropped = 0;
-  compressed.forEach((c, i) => {
-    const meta = all[i];
-    const key =
-      meta.kind === "contract"
-        ? `signed_contract_${meta.index + 1}`
-        : `pasted_image_${meta.index + 1}`;
-    const candidateAdd = key.length + c.dataUrl.length + 8; // quotes, comma, colon
-    if (runningSize + candidateAdd >= EMAILJS_VARS_LIMIT_BYTES) {
-      dropped += 1;
-      return;
-    }
-    params[key] = c.dataUrl;
-    runningSize += candidateAdd;
-  });
-  if (contractItems.length) {
-    params.signed_contract_count = String(contractItems.length);
+  const contracts = contractItems.slice();
+  const pastes = pastedItems.slice();
+  if (!contracts.length && !pastes.length) {
+    return { params, droppedCount: 0, droppedContract: 0, droppedPasted: 0 };
   }
-  return { params, droppedCount: dropped };
+
+  let compressedContracts = [];
+  let compressedPasted = [];
+
+  if (contracts.length && pastes.length) {
+    // Reserve most of the JPEG budget for contract pages so they still read in Gmail.
+    const contractBudget = Math.floor(EMAILJS_IMAGE_BUDGET_BYTES * 0.78);
+    const pastedBudget = EMAILJS_IMAGE_BUDGET_BYTES - contractBudget;
+    compressedContracts = await compressImagesForBudget(contracts, contractBudget, {
+      preserveOrder: true,
+      sortSmallestFirst: false,
+    });
+    compressedPasted = await compressImagesForBudget(pastes, pastedBudget, {
+      preserveOrder: false,
+      sortSmallestFirst: true,
+    });
+  } else if (contracts.length) {
+    compressedContracts = await compressImagesForBudget(contracts, EMAILJS_IMAGE_BUDGET_BYTES, {
+      preserveOrder: true,
+      sortSmallestFirst: false,
+    });
+  } else {
+    compressedPasted = await compressImagesForBudget(pastes, EMAILJS_IMAGE_BUDGET_BYTES, {
+      preserveOrder: false,
+      sortSmallestFirst: true,
+    });
+  }
+
+  const rows = [];
+  compressedContracts.forEach((item, i) => {
+    if (item) rows.push({ kind: "contract", index: i, dataUrl: item.dataUrl });
+  });
+  compressedPasted.forEach((item, i) => {
+    if (item) rows.push({ kind: "pasted", index: i, dataUrl: item.dataUrl });
+  });
+
+  let dropped = 0;
+  let droppedContract = 0;
+  let droppedPasted = 0;
+  for (const row of rows) {
+    const key =
+      row.kind === "contract"
+        ? `signed_contract_${row.index + 1}`
+        : `pasted_image_${row.index + 1}`;
+    params[key] = emailJsAttachmentParamValue(row.dataUrl);
+    if (JSON.stringify(params).length > EMAILJS_VARS_LIMIT_BYTES) {
+      delete params[key];
+      dropped += 1;
+      if (row.kind === "contract") droppedContract += 1;
+      else droppedPasted += 1;
+    }
+  }
+
+  const attachedContractSlots = Object.keys(params).filter((k) => /^signed_contract_\d+$/.test(k)).length;
+  if (contracts.length) {
+    params.signed_contract_count = String(attachedContractSlots);
+    params.signed_contract_pages_expected = String(contracts.length);
+  }
+  return { params, droppedCount: dropped, droppedContract, droppedPasted };
 }
 
 function clearPastedImages(formKey, previewId) {
@@ -2188,6 +2562,92 @@ function updateContractAttachedField() {
   const hidden = document.getElementById("contract-attached");
   if (hidden) hidden.value = isContractAttached() ? "yes" : "no";
 }
+
+/** Contract chip hover (desktop): bound per chip like project cards — pointerenter does not bubble. */
+let attachContractVerifyChipHoverPreview = () => {};
+
+(function initContractVerifyHoverPreview() {
+  const previewHost = document.getElementById("contract-verify-preview");
+  if (!previewHost) return;
+  const isCoarse =
+    typeof window.matchMedia === "function" &&
+    (window.matchMedia("(hover: none)").matches || window.matchMedia("(pointer: coarse)").matches);
+  if (isCoarse) return;
+
+  const tip = document.createElement("div");
+  tip.className = "link-preview-tooltip contract-verify-hover-tip";
+  tip.setAttribute("aria-hidden", "true");
+  const tipImg = document.createElement("img");
+  tipImg.alt = "";
+  tipImg.decoding = "async";
+  tip.appendChild(tipImg);
+  document.body.appendChild(tip);
+
+  let active = false;
+  let target = { x: -9999, y: -9999 };
+  let current = { x: -9999, y: -9999 };
+  let rafId = 0;
+
+  function loop() {
+    const ease = active ? 0.22 : 0.32;
+    current.x += (target.x - current.x) * ease;
+    current.y += (target.y - current.y) * ease;
+    tip.style.transform = `translate3d(${current.x.toFixed(1)}px, ${current.y.toFixed(1)}px, 0)`;
+    rafId = requestAnimationFrame(loop);
+  }
+  rafId = requestAnimationFrame(loop);
+
+  function place(e) {
+    const offset = 20;
+    const w = tip.offsetWidth || 280;
+    const h = tip.offsetHeight || 200;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let x = e.clientX + offset;
+    let y = e.clientY + offset;
+    if (x + w > vw - 10) x = e.clientX - w - offset;
+    if (y + h > vh - 10) y = e.clientY - h - offset;
+    if (x < 10) x = 10;
+    if (y < 10) y = 10;
+    target.x = x;
+    target.y = y;
+  }
+
+  attachContractVerifyChipHoverPreview = function attachContractVerifyChipHoverPreview(chip) {
+    const img = chip.querySelector("img");
+    if (!img) return;
+
+    function showAt(e) {
+      tipImg.src = img.currentSrc || img.src;
+      tipImg.alt = img.alt || "";
+      place(e);
+      if (!active) {
+        current.x = target.x;
+        current.y = target.y;
+      }
+      active = true;
+      tip.classList.add("is-visible");
+    }
+
+    function onMove(e) {
+      if (!active) {
+        showAt(e);
+        return;
+      }
+      place(e);
+    }
+
+    function hideTip() {
+      active = false;
+      tip.classList.remove("is-visible");
+      tipImg.removeAttribute("src");
+    }
+
+    chip.addEventListener("mouseenter", showAt);
+    chip.addEventListener("mousemove", onMove);
+    chip.addEventListener("mouseleave", hideTip);
+  };
+})();
 
 function renderContractVerifyPreview() {
   const wrap = document.getElementById("contract-verify");
@@ -2229,6 +2689,7 @@ function renderContractVerifyPreview() {
     label.textContent = item.name || "Page";
     chip.append(img, label, remove);
     preview.appendChild(chip);
+    attachContractVerifyChipHoverPreview(chip);
   });
   const attached = isContractAttached();
   wrap.dataset.attached = attached ? "true" : "false";
@@ -2289,6 +2750,7 @@ async function attachContractDataUrls(urls, opts) {
     for (let i = 0; i < urls.length; i += 1) {
       const url = urls[i];
       if (!url) continue;
+      if (list.some((x) => x.dataUrl === url)) continue;
       if (list.length >= MAX_PASTED_IMAGES) {
         break;
       }
@@ -2379,10 +2841,11 @@ function initContractVerifySection() {
         } else {
           continue;
         }
+        if (signedContractStore.some((x) => x.dataUrl === dataUrl)) continue;
         pushSignedContract(dataUrl, name, "upload");
-        pastedImageIdSeq += 1;
         const list = pastedStores.contact;
-        if (list.length < MAX_PASTED_IMAGES) {
+        if (list.length < MAX_PASTED_IMAGES && !list.some((x) => x.dataUrl === dataUrl)) {
+          pastedImageIdSeq += 1;
           list.push({ id: pastedImageIdSeq, dataUrl, name });
         }
       } catch (err) {
@@ -3101,6 +3564,7 @@ function sendEmail(templateParams) {
 const contactForm = document.getElementById("contact-form");
 if (contactForm) {
   initContractVerifySection();
+  updateAgreementExportGates();
   initContactPayPalSection();
 
   contactForm.addEventListener("submit", (e) => {
@@ -3191,6 +3655,8 @@ if (contactForm) {
     (async () => {
       let templateParams;
       let droppedCount = 0;
+      let droppedContractPages = 0;
+      let droppedPastedImages = 0;
       try {
         const built = await buildEmailParamsWithImages(
           baseParams,
@@ -3199,6 +3665,8 @@ if (contactForm) {
         );
         templateParams = built.params;
         droppedCount = built.droppedCount;
+        droppedContractPages = built.droppedContract || 0;
+        droppedPastedImages = built.droppedPasted || 0;
       } catch (prepErr) {
         console.error("Failed to prepare email images", prepErr);
         templateParams = { ...baseParams };
@@ -3207,8 +3675,17 @@ if (contactForm) {
       try {
         await sendEmail(templateParams);
         if (droppedCount > 0) {
+          let followUp =
+            "EmailJS limits all template fields (including images) to about 50 KB. Contract pages and screenshots are compressed as much as possible.";
+          if (droppedContractPages > 0 && droppedPastedImages > 0) {
+            followUp = `Could not fit ${droppedContractPages} signed contract page(s) and ${droppedPastedImages} other image(s). Try removing pasted screenshots from the message and submitting again, or follow up by email to send the rest.`;
+          } else if (droppedContractPages > 0) {
+            followUp = `Could not fit ${droppedContractPages} signed contract page(s). Remove extra pasted images in the message box and submit again so more space is available for the contract.`;
+          } else {
+            followUp = `Could not fit ${droppedPastedImages} pasted image(s). Your signed contract pages should still appear in Gmail if they fit under the limit.`;
+          }
           alert(
-            `Your message was sent, but ${droppedCount} attached image${droppedCount === 1 ? " was" : "s were"} too large to include in the email and could not be attached. Reply to the confirmation email to send them as a follow-up.`,
+            `Your message was sent, but ${droppedCount} attachment${droppedCount === 1 ? "" : "s"} ${droppedCount === 1 ? "was" : "were"} omitted from the email.\n\n${followUp}`,
           );
         }
         setFormCooldown();
@@ -3302,6 +3779,7 @@ if (questionsForm) {
     (async () => {
       let templateParams;
       let droppedCount = 0;
+      let droppedPastedImages = 0;
       try {
         const built = await buildEmailParamsWithImages(
           baseParams,
@@ -3310,6 +3788,7 @@ if (questionsForm) {
         );
         templateParams = built.params;
         droppedCount = built.droppedCount;
+        droppedPastedImages = built.droppedPasted || 0;
       } catch (prepErr) {
         console.error("Failed to prepare email images", prepErr);
         templateParams = { ...baseParams };
@@ -3319,7 +3798,7 @@ if (questionsForm) {
         await sendEmail(templateParams);
         if (droppedCount > 0) {
           alert(
-            `Your message was sent, but ${droppedCount} attached image${droppedCount === 1 ? " was" : "s were"} too large to include in the email and could not be attached.`,
+            `Your message was sent, but ${droppedPastedImages || droppedCount} pasted image${droppedCount === 1 ? "" : "s"} could not fit within EmailJS's size limit. Try sending with fewer or smaller screenshots.`,
           );
         }
         setFormCooldown();
@@ -3822,6 +4301,174 @@ if (questionsForm) {
 })();
 
 /* ============================================================
+   Agreement PDF cover: large hover preview (same idea as projects)
+   ============================================================ */
+(function initAgreementCoverHoverPreview() {
+  const btn = document.getElementById("agreement-open");
+  if (!btn) return;
+  const coverImg = btn.querySelector(".agreement-cover-img");
+  if (!coverImg) return;
+  const isCoarse =
+    typeof window.matchMedia === "function" &&
+    (window.matchMedia("(hover: none)").matches || window.matchMedia("(pointer: coarse)").matches);
+  if (isCoarse) return;
+
+  const tip = document.createElement("div");
+  tip.className = "link-preview-tooltip agreement-cover-hover-tip";
+  tip.setAttribute("aria-hidden", "true");
+  const tipImg = document.createElement("img");
+  tipImg.alt = "";
+  tipImg.decoding = "async";
+  const host = document.createElement("span");
+  host.className = "link-preview-tooltip__host";
+  host.textContent = "Website Development Agreement";
+  tip.append(tipImg, host);
+  document.body.appendChild(tip);
+
+  let active = false;
+  let target = { x: -9999, y: -9999 };
+  let current = { x: -9999, y: -9999 };
+  let rafId = 0;
+
+  function frame() {
+    const ease = active ? 0.22 : 0.32;
+    current.x += (target.x - current.x) * ease;
+    current.y += (target.y - current.y) * ease;
+    tip.style.transform = `translate3d(${current.x.toFixed(1)}px, ${current.y.toFixed(1)}px, 0)`;
+    rafId = requestAnimationFrame(frame);
+  }
+  rafId = requestAnimationFrame(frame);
+
+  function place(e) {
+    const offset = 22;
+    const w = tip.offsetWidth || 260;
+    const h = tip.offsetHeight || 320;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let x = e.clientX + offset;
+    let y = e.clientY + offset;
+    if (x + w > vw - 8) x = e.clientX - w - offset;
+    if (y + h > vh - 8) y = e.clientY - h - offset;
+    if (x < 8) x = 8;
+    if (y < 8) y = 8;
+    target.x = x;
+    target.y = y;
+  }
+
+  function showAt(e) {
+    tipImg.src = coverImg.currentSrc || coverImg.src;
+    tipImg.alt = coverImg.alt || "";
+    place(e);
+    if (!active) {
+      current.x = target.x;
+      current.y = target.y;
+    }
+    active = true;
+    tip.classList.add("is-visible");
+  }
+
+  function onMove(e) {
+    if (!active) {
+      showAt(e);
+      return;
+    }
+    place(e);
+  }
+
+  btn.addEventListener("mouseenter", showAt);
+  btn.addEventListener("mousemove", onMove);
+  btn.addEventListener("mouseleave", () => {
+    active = false;
+    tip.classList.remove("is-visible");
+    tipImg.removeAttribute("src");
+  });
+})();
+
+/* ============================================================
+   Certification thumbnails: miniature “viewer” preview at cursor (mouse)
+   ============================================================ */
+(function initCertificationCursorPreview() {
+  const triggers = document.querySelectorAll(".certification-trigger");
+  if (!triggers.length) return;
+  const isCoarse =
+    typeof window.matchMedia === "function" &&
+    (window.matchMedia("(hover: none)").matches || window.matchMedia("(pointer: coarse)").matches);
+  if (isCoarse) return;
+
+  const tip = document.createElement("div");
+  tip.className = "cert-preview-follow";
+  tip.id = "cert-follow-preview";
+  tip.setAttribute("aria-hidden", "true");
+  const tipImg = document.createElement("img");
+  tipImg.alt = "";
+  tipImg.decoding = "async";
+  tip.appendChild(tipImg);
+  document.body.appendChild(tip);
+
+  let active = false;
+  let target = { x: -9999, y: -9999 };
+  let current = { x: -9999, y: -9999 };
+  let rafId = 0;
+
+  function frameLoop() {
+    const ease = active ? 0.24 : 0.32;
+    current.x += (target.x - current.x) * ease;
+    current.y += (target.y - current.y) * ease;
+    tip.style.transform = `translate3d(${current.x.toFixed(1)}px, ${current.y.toFixed(1)}px, 0)`;
+    rafId = requestAnimationFrame(frameLoop);
+  }
+  rafId = requestAnimationFrame(frameLoop);
+
+  function place(e) {
+    const offset = 18;
+    const w = tip.offsetWidth || 200;
+    const h = tip.offsetHeight || 280;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let x = e.clientX + offset;
+    let y = e.clientY + offset;
+    if (x + w > vw - 10) x = e.clientX - w - offset;
+    if (y + h > vh - 10) y = e.clientY - h - offset;
+    if (x < 10) x = 10;
+    if (y < 10) y = 10;
+    target.x = x;
+    target.y = y;
+  }
+
+  triggers.forEach((btn) => {
+    const thumb = btn.querySelector("img");
+    if (!thumb) return;
+    btn.addEventListener("pointerenter", (e) => {
+      if (e.pointerType && e.pointerType !== "mouse") return;
+      tipImg.src = thumb.currentSrc || thumb.src;
+      tipImg.alt = thumb.alt ? `${thumb.alt} (preview)` : "";
+      place(e);
+      if (!active) {
+        current.x = target.x;
+        current.y = target.y;
+      }
+      active = true;
+      tip.classList.add("is-visible");
+    });
+    btn.addEventListener("pointermove", (e) => {
+      if (e.pointerType && e.pointerType !== "mouse") return;
+      if (!active) return;
+      place(e);
+    });
+    btn.addEventListener("pointerleave", () => {
+      active = false;
+      tip.classList.remove("is-visible");
+      tipImg.removeAttribute("src");
+    });
+    btn.addEventListener("blur", () => {
+      active = false;
+      tip.classList.remove("is-visible");
+      tipImg.removeAttribute("src");
+    });
+  });
+})();
+
+/* ============================================================
    Interactive marquees: native horizontal scroll + auto-loop +
    draggable handle. Replaces the CSS @keyframes animation so the
    marquee can never get stuck in a paused :hover state on touch /
@@ -3840,6 +4487,8 @@ if (questionsForm) {
       track: document.querySelector(".cert-marquee-track"),
       groupSelector: ".cert-marquee-group",
       speed: 26,
+      // Single row of certs only — no DOM clone for seamless tiling.
+      cloneForLoop: false,
     },
     {
       container: document.querySelector(".projects-marquee"),
@@ -3870,7 +4519,8 @@ function setupInteractiveMarquee(m, reduceMotion) {
   container.style.overflowX = "auto";
   container.style.overflowY = "hidden";
 
-  // Ensure the loop has at least 2 identical groups for seamless wrap.
+  // Default: duplicate the first group so the strip can loop seamlessly.
+  // Pass `cloneForLoop: false` to keep a single row (e.g. certifications).
   // Clones are marked aria-hidden and any focusable descendants get
   // tabindex=-1 so the duplicate cards do not appear in the tab order
   // or get announced twice by assistive tech.
@@ -3885,20 +4535,23 @@ function setupInteractiveMarquee(m, reduceMotion) {
       el.setAttribute("aria-hidden", "true");
     });
   }
+  const cloneForLoop = m.cloneForLoop !== false;
   const groups = track.querySelectorAll(groupSelector);
-  if (groups.length < 2) {
-    const clone = groups[0]?.cloneNode(true);
-    if (clone) {
-      neutralizeClone(clone);
-      track.appendChild(clone);
+  if (cloneForLoop) {
+    if (groups.length < 2) {
+      const clone = groups[0]?.cloneNode(true);
+      if (clone) {
+        neutralizeClone(clone);
+        track.appendChild(clone);
+      }
+    } else {
+      // Pre-existing duplicate groups get the same treatment so behavior matches
+      // auto-cloned marquees.
+      groups.forEach((g, i) => {
+        if (i === 0) return;
+        neutralizeClone(g);
+      });
     }
-  } else {
-    // Pre-existing clone groups (e.g. the certifications strip) get the
-    // same treatment so behavior matches the auto-cloned case.
-    groups.forEach((g, i) => {
-      if (i === 0) return;
-      neutralizeClone(g);
-    });
   }
 
   // Create handle UI below the marquee.
@@ -3936,19 +4589,23 @@ function setupInteractiveMarquee(m, reduceMotion) {
     pos: 0,
   };
 
-  function singleGroupWidth() {
-    const first = track.querySelector(groupSelector);
-    if (!first) return container.scrollWidth / 2;
-    const style = window.getComputedStyle(first);
-    const marginRight = parseFloat(style.marginRight || "0") || 0;
-    return first.getBoundingClientRect().width + marginRight;
+  function loopStride() {
+    const list = track.querySelectorAll(groupSelector);
+    const n = Math.max(1, list.length);
+    const total = track.scrollWidth;
+    return total > 0 && n > 0 ? total / n : 0;
   }
 
-  function clampPosWithLoop() {
-    const gw = singleGroupWidth();
-    if (gw <= 0) return;
-    if (state.pos >= gw) state.pos -= gw;
-    else if (state.pos < 0) state.pos += gw;
+  /** Keep scroll phase inside one repeating tile (identical clones). */
+  function wrapLoopPhase(raw) {
+    const S = loopStride();
+    if (!(S > 0)) return raw;
+    let x = raw;
+    let guard = 0;
+    while (x >= S && guard++ < 128) x -= S;
+    guard = 0;
+    while (x < 0 && guard++ < 128) x += S;
+    return x;
   }
 
   function updateThumb() {
@@ -3973,12 +4630,23 @@ function setupInteractiveMarquee(m, reduceMotion) {
     state.lastTime = t;
     // The only thing that pauses the loop is an in-progress handle drag.
     if (!state.dragging && state.speed > 0) {
+      const max = Math.max(0, container.scrollWidth - container.clientWidth);
+      if (max < 0.5) {
+        updateThumb();
+        state.rafId = requestAnimationFrame(tick);
+        return;
+      }
       state.pos += state.speed * dt * state.direction;
-      clampPosWithLoop();
+      // Stride modulo (wrapLoopPhase) stalls when loopStride > max — the DOM caps
+      // scrollLeft before we advance one full stride. Jump at the track edge instead.
+      if (state.pos > max) {
+        state.pos = 0;
+      } else if (state.pos < 0) {
+        state.pos = max;
+      }
       container.scrollLeft = state.pos;
     } else {
-      // While paused, follow whatever the user/dragger set so we resume
-      // smoothly from the new position instead of snapping back.
+      // Follow native scrollLeft while the user scrubs — wrap normalizes on drag end.
       state.pos = container.scrollLeft;
     }
     updateThumb();
@@ -4021,16 +4689,17 @@ function setupInteractiveMarquee(m, reduceMotion) {
     const trackW = handle.clientWidth - thumb.clientWidth;
     if (trackW <= 0) return;
     const dx = e.clientX - state.dragStartX;
-    const next = state.dragStartScroll + dx * (max / trackW);
+    let next = state.dragStartScroll + dx * (max / trackW);
+    next = Math.max(0, Math.min(max, next));
     container.scrollLeft = next;
     state.pos = container.scrollLeft;
-    clampPosWithLoop();
-    container.scrollLeft = state.pos;
   });
   function endDrag(e) {
     if (!state.dragging) return;
     state.dragging = false;
     thumb.classList.remove("is-grabbing");
+    state.pos = wrapLoopPhase(container.scrollLeft);
+    container.scrollLeft = state.pos;
     if (e && e.pointerId !== undefined) {
       try {
         thumb.releasePointerCapture(e.pointerId);
@@ -4038,7 +4707,6 @@ function setupInteractiveMarquee(m, reduceMotion) {
         /* noop */
       }
     }
-    // Resume immediately from the new position — no cool-off.
     state.lastTime = 0;
   }
   thumb.addEventListener("pointerup", endDrag);
@@ -4056,6 +4724,8 @@ function setupInteractiveMarquee(m, reduceMotion) {
     const max = Math.max(1, container.scrollWidth - container.clientWidth);
     state.pos = fraction * max;
     container.scrollLeft = state.pos;
+    state.pos = wrapLoopPhase(container.scrollLeft);
+    container.scrollLeft = state.pos;
     updateThumb();
   });
 
@@ -4063,14 +4733,13 @@ function setupInteractiveMarquee(m, reduceMotion) {
   // the auto-scroll continues from the new position.
   handle.addEventListener("keydown", (e) => {
     const step = container.clientWidth * 0.2;
+    const maxGo = Math.max(0, container.scrollWidth - container.clientWidth);
     if (e.key === "ArrowLeft") {
-      state.pos -= step;
-      clampPosWithLoop();
+      state.pos = Math.max(0, container.scrollLeft - step);
       container.scrollLeft = state.pos;
       e.preventDefault();
     } else if (e.key === "ArrowRight") {
-      state.pos += step;
-      clampPosWithLoop();
+      state.pos = Math.min(maxGo, container.scrollLeft + step);
       container.scrollLeft = state.pos;
       e.preventDefault();
     } else if (e.key === "Home") {
@@ -4078,7 +4747,7 @@ function setupInteractiveMarquee(m, reduceMotion) {
       container.scrollLeft = 0;
       e.preventDefault();
     } else if (e.key === "End") {
-      state.pos = singleGroupWidth();
+      state.pos = maxGo;
       container.scrollLeft = state.pos;
       e.preventDefault();
     }
@@ -4130,11 +4799,10 @@ function setupInteractiveMarquee(m, reduceMotion) {
 }
 
 /* ============================================================
-   ServiceCardTilt
-   - "What you get" cards get a 3D tilt that follows the cursor:
-     the corner the cursor is over rises toward the viewer.
-   - A soft white radial highlight tracks the cursor inside the card.
-   - Disabled on touch and prefers-reduced-motion.
+   ServiceCardTilt + ImpactCardTilt
+   - Service / impact cards get 3D tilt following the pointer.
+   - .is-tilting stays until rx/ry scale lerp to rest so fast unhover
+     does not snap (transform rule would drop if we removed the class early).
    ============================================================ */
 (function initServiceCardTilt() {
   if (typeof window.matchMedia !== "function") return;
@@ -4181,6 +4849,9 @@ function setupInteractiveMarquee(m, reduceMotion) {
         rafId = requestAnimationFrame(frame);
       } else {
         rafId = 0;
+        /* Keep .is-tilting until the lerp settles so the transform rule does not
+           drop mid-animation (fast unhover used to snap before this). */
+        card.classList.remove("is-tilting");
       }
     }
 
@@ -4214,7 +4885,6 @@ function setupInteractiveMarquee(m, reduceMotion) {
 
     function leave() {
       active = false;
-      card.classList.remove("is-tilting");
       targetRx = 0;
       targetRy = 0;
       targetScale = 1;

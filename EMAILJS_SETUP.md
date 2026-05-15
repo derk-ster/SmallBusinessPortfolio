@@ -42,12 +42,40 @@ Visitors can paste screenshots into the message box. The site sends them as temp
 
 1. In your template, open the **Attachments** tab.
 2. For each slot you want to support, add **Variable Attachment**.
-3. Set **Parameter name** to `pasted_image_1` (then `pasted_image_2`, etc.). **Filename** can be `pasted-1.jpg`. **Content type** `JPEG` (or leave default if offered).
+3. Set **Parameter name** to `pasted_image_1` (then `pasted_image_2`, etc.). **Filename** can be `pasted-1.jpg`. **Content type** **JPEG** (the site sends JPEG data).
 4. Save. If these are not added, EmailJS may ignore the extra parameters and the images will not arrive as attachments.
 
-## 4. Connect your email service (required)
+## Optional: Signed contract pages (contact form / purchase flow)
 
-In EmailJS, go to **Email Services** and make sure the service (e.g. Gmail) linked to **service_ui61fqn** is **connected** and verified. If it isn’t, emails will fail even with the correct Template ID and Public Key.
+After the client signs the agreement on the site, each page is exported as a JPEG and sent as **`signed_contract_1`**, **`signed_contract_2`**, **`signed_contract_3`**, … (one variable per page in order). The template also receives:
+
+- **`signed_contract_count`** — how many of those variables were actually included after compression (usually matches page count).
+- **`signed_contract_pages_expected`** — how many pages the PDF had when the client submitted.
+
+**You must add Variable Attachments for each contract slot you want to receive in Gmail**, the same way as pasted images:
+
+1. Template → **Attachments** → **Variable Attachment** for each of `signed_contract_1`, `signed_contract_2`, `signed_contract_3` (add a 4th if your PDF ever has more than three pages).
+2. **Parameter name:** `signed_contract_1` (must match exactly — same as in `script.js`).
+3. **Content type:** choose **JPEG (Image)**. This site sends **JPEG** bytes (`canvas.toDataURL("image/jpeg", …)`). If you pick **PNG** here, Gmail often shows broken or empty attachments.
+4. **Filename:** use a real download name, e.g. `signed-contract-page-1.jpg` (not the parameter name). Repeat for pages 2 and 3.
+
+If these attachment slots are missing, EmailJS may drop the binary data even though the send “succeeds,” and **`contract_attached`** in the body can say `yes` while attachments are empty.
+
+### Pasted screenshots in the message
+
+Add the same kind of **Variable Attachment** rows for **`pasted_image_1`** through **`pasted_image_5`** (JPEG content type, filenames like `pasted-1.jpg`). Without them, pasted screenshots never arrive as attachments.
+
+## Size limit (~50 KB) and what the site does about it
+
+EmailJS rejects requests when **all template fields (JSON) together** exceed roughly **50 KB**. Base64 JPEGs for a multi-page contract and several screenshots blow past that quickly. The website **compresses** contract pages and pasted images and **reserves most of the image budget for the signed contract** so those pages are more likely to arrive legibly in Gmail. If something still does not fit, the user gets an alert after a successful send explaining what was omitted.
+
+If attachments are still missing: ask the client to **remove extra pasted screenshots** from the message and submit again, or collect remaining pages in a follow-up email.
+
+## 5. Connect your email service (required)
+
+In EmailJS, go to **Email Services** and make sure the service (e.g. **Gmail**) linked to **service_ui61fqn** is **connected** and verified. If it isn’t, emails will fail even with the correct Template ID and Public Key.
+
+For **Gmail** as the sending service: use EmailJS’s Gmail integration and complete Google’s connection / OAuth steps so sends are authorized. Inbound mail to **`derek.ray.2104@gmail.com`** (or whatever you set in **`NOTIFICATION_INBOX`** in `script.js`) relies on your template **To Email** using `{{to_email}}` or that address directly.
 
 ---
 
@@ -69,3 +97,6 @@ In EmailJS, go to **Email Services** and make sure the service (e.g. Gmail) link
 
 - **HTTP 400 — “The service ID not found”**  
   **Public Key** and **Service ID** must be from the **same** logged-in EmailJS account.
+
+- **Email shows text but no contract / image attachments in Gmail**  
+  In the EmailJS template, open **Attachments** and add **Variable Attachment** rows for every parameter you use: `signed_contract_1` … `signed_contract_3`, and `pasted_image_1` … as needed. Without those rows, EmailJS does not attach the JPEGs. **Set Content type to JPEG** for each (not PNG). Check **Email History** → request payload sizes.

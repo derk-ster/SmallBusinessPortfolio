@@ -226,7 +226,7 @@
           </div>
           <div class="impact-grid">
             <article
-              class="glass-card impact-card magnetic"
+              class="glass-card impact-card"
               data-impact-card
               data-impact-target="#projects"
               role="button"
@@ -252,7 +252,7 @@
               <p class="impact-foot">Live, clickable examples in the strip below.</p>
             </article>
             <article
-              class="glass-card impact-card magnetic"
+              class="glass-card impact-card"
               data-impact-card
               data-impact-target="#education-experience"
               role="button"
@@ -278,7 +278,7 @@
               <p class="impact-foot">Hands-on building real client websites.</p>
             </article>
             <article
-              class="glass-card impact-card magnetic"
+              class="glass-card impact-card"
               data-impact-card
               data-impact-target="#certifications"
               role="button"
@@ -826,48 +826,6 @@
                     </button>
                   </div>
                 </div>
-                <div class="cert-marquee-group cert-marquee-group--clone" aria-hidden="true">
-                  <div class="certification-card glass-card">
-                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger CSS certification">
-                      <img src="Asset/CSS.png" alt="" loading="lazy" />
-                    </button>
-                  </div>
-                  <div class="certification-card glass-card">
-                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger front-end development certification">
-                      <img src="Asset/FrontEnd.png" alt="" loading="lazy" />
-                    </button>
-                  </div>
-                  <div class="certification-card glass-card">
-                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger HTML certification">
-                      <img src="Asset/HTML.png" alt="" loading="lazy" />
-                    </button>
-                  </div>
-                  <div class="certification-card glass-card">
-                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger JavaScript certification">
-                      <img src="Asset/JavaScript.png" alt="" loading="lazy" />
-                    </button>
-                  </div>
-                  <div class="certification-card glass-card">
-                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger React certification">
-                      <img src="Asset/React.png" alt="" loading="lazy" />
-                    </button>
-                  </div>
-                  <div class="certification-card glass-card">
-                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger SQL certification">
-                      <img src="Asset/SQL.png" alt="" loading="lazy" />
-                    </button>
-                  </div>
-                  <div class="certification-card glass-card">
-                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger full-stack development certification">
-                      <img src="Asset/FullStackImage.png" alt="" loading="lazy" />
-                    </button>
-                  </div>
-                  <div class="certification-card glass-card">
-                    <button type="button" class="certification-trigger" tabindex="-1" aria-label="View larger back-end development certification">
-                      <img src="Asset/BackEndDev.png" alt="" loading="lazy" />
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1179,8 +1137,31 @@
       </div>
     </div>
 
+    <div id="agreement-gate-toast" class="agreement-gate-toast" role="alert" aria-live="assertive" aria-hidden="true" hidden>
+      <div class="agreement-gate-toast__panel glass-card" id="agreement-gate-toast-panel">
+        <p class="agreement-gate-toast__text" id="agreement-gate-toast-text"></p>
+        <button type="button" class="btn primary" id="agreement-gate-toast-close">OK</button>
+      </div>
+    </div>
+
     <div class="portrait-lightbox" id="portrait-lightbox" aria-hidden="true">
       <button type="button" class="portrait-lightbox-close" aria-label="Close">×</button>
+      <button
+        type="button"
+        class="portrait-lightbox-nav portrait-lightbox-prev"
+        aria-label="Previous certification"
+        hidden
+      >
+        ‹
+      </button>
+      <button
+        type="button"
+        class="portrait-lightbox-nav portrait-lightbox-next"
+        aria-label="Next certification"
+        hidden
+      >
+        ›
+      </button>
       <img src="" alt="" />
     </div>
 
@@ -1243,7 +1224,10 @@
           </div>
         </div>
         <p class="agreement-fill-hint" id="agreement-fill-hint" hidden>
-          Click any underline to type your name, dates, or details. Switch to <strong>Sign</strong> to draw your signature. Then <strong>Save &amp; attach to payment</strong> &mdash; required before checkout.
+          Click any underline to type your name, dates, or details. Switch to <strong>Sign</strong> to draw your signature.
+          You need typing or a signature on <strong>page 1</strong> and <strong>page 3</strong> before
+          <strong>Add to message</strong> or <strong>Save &amp; attach to payment</strong>. Those buttons stay disabled
+          until both pages have marks.
         </p>
         <div class="agreement-fill-layout">
           <aside class="agreement-fill-sidebar" id="agreement-fill-sidebar" hidden aria-label="Fill and sign options">
